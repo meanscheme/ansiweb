@@ -1,0 +1,297 @@
+*
+{
+	font-family:system,verdana;
+	font-size:12px;
+	text-align:left;
+}
+
+body
+{
+
+	background-color:#333;
+	color:#bbb;
+	padding:0px;
+	margin:0px;
+}
+
+a
+{
+color:#fff;
+}
+
+#main
+{
+margin-left:20px;
+margin-right:20px;
+}
+
+#header
+{
+	background-color:black;
+	height:170px;
+	overflow:hidden;
+}
+#nav
+{
+	padding:4px;
+	padding-left:20px;
+	padding-right:20px;
+	background-color:#222;
+}
+
+#login
+{
+	padding:4px;
+	padding-left:20px;
+	padding-right:20px;
+	background-color:#444;
+}
+
+
+.nav
+{
+	color:#fff;
+	padding-left:10px;
+	padding-right:10px;
+	text-decoration:none;
+	margin-right:5px;
+}
+.nav:hover
+{
+	background-color:#444;
+	text-decoration:none;
+}
+
+
+.navactive
+{
+	color:#000;
+	background-color:#fff;
+	padding-left:10px;
+	padding-right:10px;
+	text-decoration:none;
+	margin-right:5px;
+}
+
+#maincontent
+{
+	padding-top:10px;
+	padding-bottom:20px;
+}
+
+textarea
+{
+	margin-left:4px;
+	margin-right:4px;
+	border:none;
+}
+
+input.button
+{
+	background-color:#34B0FF;
+	color:#fff;
+	height:20px;
+}
+
+input,select
+{
+	height:18px;
+	border:none;
+	margin-left:4px;
+	margin-right:4px;
+}
+
+.loginbox
+{
+padding-top:6px;
+}
+.myinput
+{
+background-color:#ccc;
+}
+
+h2
+{
+font-size:18px;
+font-family:arial;
+font-weight:bold;
+}
+
+
+.bigbutton,.smallbutton
+{
+	text-decoration:none;
+	background-color:#34B0FF;
+	padding:5px;
+	padding-left:10px;
+	padding-right:10px;
+	color:#fff;
+	margin-right:10px;
+}
+
+.bigbutton:hover,.smallbutton:hover
+{
+	background-color:#2190aa;
+	color:#fff;
+}
+
+.smallbutton
+{
+	padding:1px;
+	padding-left:10px;
+	padding-right:10px;
+}
+
+.editnav
+{
+	cursor:pointer;
+	float:left;
+	background-color:black;
+	margin-right:10px;
+	padding-left:15px;
+	padding-right:15px;
+	text-decoration:none;
+	background-color:#34B0FF;
+}
+
+#edithelp
+{
+	display:none;
+	background-color:black;
+	padding:20px;
+	width:680px;
+	height:400px;
+}
+
+.ansiheader
+{
+	background-color:#111;
+	display:block;
+	width:700px;
+	padding:10px;
+}
+
+.comment1,.comment2
+{
+	padding:10px;
+}
+
+.comment1
+{
+	background-color:#252525;
+	border-top:1px solid #222;
+}
+.comment2
+{
+	background-color:#191919;
+	border-top:1px solid #444;
+}
+
+.editstatusbutton
+{
+	color:white;
+	text-decoration:underline;
+}
+
+.colorselect
+{
+	cursor:pointer;
+	text-align:center;
+	width:20px;
+	display:block;
+	height:15px;
+	float:left;
+	background-color:black;
+	border:1px solid black;
+}
+
+#footer 
+{
+	padding:4px;
+	position:fixed;
+	background-color:black;
+	bottom:0;
+	left:0;
+	width:100%;
+	height:25px;
+}
+
+#fixeduserlist 
+{
+	display:none;
+	position:fixed;
+	background-color:white;
+	padding:10px;
+	left:20px;
+	bottom:30px;
+}
+
+#fixeduserlist a , #footer a 
+{
+	cursor:pointer;
+	color:#777;
+}	
+
+#fixeduserlist a:hover 
+{
+	cursor:pointer;
+	color:white;
+	background-color:black;
+}	
+
+.footerchat
+{
+	background-color:white;
+	float:left;
+	width:100px;
+	border:2px solid white;
+	margin-left:5px;
+	color:black;
+}
+
+.chatwin
+{
+	background-color:#fff;
+	position:absolute;
+	top:-255px;
+	margin-left:-5px;
+	display:block;
+	width:200px;
+	height:230px;
+	padding:10px;
+	border:2px solid #777;
+
+}
+
+.chatcontent
+{
+	width:200px;
+	height:200px;
+	overflow:scroll;
+}
+
+.chatwin input
+{
+	background-color:#aaa;
+	border:1px solid #777;
+}
+
+
+.latestlink
+{
+	background-color:#000;
+	color:white;
+	font-family:arial;
+	font-size:11px;
+	padding:4px;
+	padding-top:1px;
+	padding-bottom:1px;
+	text-decoration:none;
+	line-height:18px;
+	margin-bottom:5px;
+}
+.latestlink:hover
+{
+text-decoration:underline;
+}
+
