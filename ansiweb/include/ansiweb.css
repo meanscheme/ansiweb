@@ -1,0 +1,53 @@
+#ansiweb .header {
+	width: 700px;
+	border: 0;
+	display: block;
+	background-color: #111;
+	padding: 10px;
+}
+
+
+#ansiweb .header div {
+	clear: left;
+	height: 25px;
+	margin-bottom: 10px;
+	width: 100%;
+}
+
+#ansiweb .editnav a {
+	cursor: pointer;
+	float: left;
+	margin-right: 10px;
+	padding: 0 15px;
+	text-decoration: none;
+	background-color: #34B0FF;
+}
+
+#ansiweb span {
+	float: left;
+	width: 90px;
+}
+
+#ansiweb a + span {
+	width: 20px;
+}
+
+#ansiweb #colorselectors a
+{
+	padding: 0;
+	margin: 0;
+	cursor: pointer;
+	text-align: center;
+	width: 20px;
+	display: block;
+	height: 15px;
+	float: left;
+	background-color: black;
+	border: 1px solid black;
+}
+
+
+#ansiweb .colorselect
+{
+}
+

@@ -1,21 +1,17 @@
-*
-{
+* {
 	font-family:system,verdana;
 	font-size:12px;
 	text-align:left;
 }
 
-body
-{
-
+body {
 	background-color:#333;
 	color:#bbb;
 	padding:0px;
 	margin:0px;
 }
 
-a
-{
+a {
 color:#fff;
 }
 
@@ -142,18 +138,6 @@ font-weight:bold;
 	padding-right:10px;
 }
 
-.editnav
-{
-	cursor:pointer;
-	float:left;
-	background-color:black;
-	margin-right:10px;
-	padding-left:15px;
-	padding-right:15px;
-	text-decoration:none;
-	background-color:#34B0FF;
-}
-
 #edithelp
 {
 	display:none;
@@ -191,18 +175,6 @@ font-weight:bold;
 {
 	color:white;
 	text-decoration:underline;
-}
-
-.colorselect
-{
-	cursor:pointer;
-	text-align:center;
-	width:20px;
-	display:block;
-	height:15px;
-	float:left;
-	background-color:black;
-	border:1px solid black;
 }
 
 #footer 
