@@ -46,8 +46,32 @@
 	border: 1px solid black;
 }
 
-
-#ansiweb .colorselect
+#ansiweb #previewarea
 {
+	border: 2px dashed #888;
+	position: absolute;
+	display: block;
+	z-index: 100;
+	background-color: #fff;
+	opacity: 0.1;
 }
 
+#ansiweb #cursormarker
+{
+	border: 2px dashed #888;
+	position: absolute;
+	display: block;
+	z-index: 100;
+	background-color: #fff;
+	opacity: 0.5;
+}
+
+#ansiweb #blockmarker
+{
+	border: 2px dashed #888;
+	position: absolute;
+	display: block;
+	z-index: 100;
+	background-color: #fff;
+	opacity: 0.5;
+}
