@@ -12,10 +12,6 @@
 		<div id="ansiweb">
 			<div class="header">
 				<div class="editnav">
-					<a onClick="save();" href="#edit0r"> save </a>
-					<a onClick="resizeCanvas(-16*4);" href="#edit0r"> - </a>
-					<a onClick="resizeCanvas(16*4);" href="#edit0r"> + </a>
-					<a onClick="ansi.toggleHelp();" href="#edit0r"> help </a>
 				</div>
 				<div>
 					<span id="ansipos">pos:</span>
@@ -25,7 +21,6 @@
 					<span>colors: </span>
 				</div>
 				<div id="editstatus">
-				done.
 				</div>
 			</div>
 			<div style="width:980px;">
@@ -98,9 +93,12 @@
 				</div>
 				<div style="width:720;height:400px;overflow:hidden;float:left;" id="canvdiv">
 					<canvas style="position:relative;z-index:0;top:0px;" height="16000" width="720" id="offcanvas"></canvas>
-					<div style="border:1px dashed #888;position:relative;top:-16000;overflow:hidden;display:block;z-index:100;width:0px;height:0px;background-color:#fff;opacity:0.2;" id="marker"></div>
+					<div style="border:1px dashed #888;position:relative;top:-16000;overflow:hidden;display:block;z-index:100;width:0px;height:0px;background-color:#fff;opacity:0.2;" id="blockmarker"></div>
+					<div style="" id="previewFrameMarker"></div>
 				</div>
-				<canvas style="margin-left:20px;float:left;" height="400" width="160" id="smallcanvas"></canvas>
+				<div style="width:160px; height:400px;overflow:hidden;float:left;margin-left:20px;">
+					<canvas style="position:relative;z-index:0;top:0px;" height="4000" width="160" id="smallcanvas"></canvas>
+				</div>
 				<div style="clear:both;"></div>
 				<script type="text/javascript">
 
