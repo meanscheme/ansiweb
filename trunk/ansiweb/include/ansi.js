@@ -2,7 +2,7 @@
  * ansiWeb - an ANSI graphics editor based on web technologies
  * http://ansi.drastic.net/
  *
- * Copyright 2009 Thomas Kombüchen, Björn Odendahl
+ * Copyright 2009 Thomas KombÃ¼chen, BjÃ¶rn Odendahl
  * 
  * ansiWeb is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,55 +17,251 @@
  * You should have received a copy of the GNU General Public License
  * along with ansiWeb.  If not, see <http://www.gnu.org/licenses/>.
  */
-
-function rgba(rr,gg,bb,aa)
-{
-	this.r=rr;
-	this.g=gg;
-	this.b=bb;
-	this.a=aa;
-}  
-
-function achar()
-{
-	this.chr	= 32;
-	this.bg		=  0;
-	this.color	=  7;
-	
-	this.getData = function()
-	{
-		return this.chr+','+this.bg+','+this.color
-	}
-}
-
-function vec2()
-{
-	this.x = 0;
-	this.y = 0;
-}
-
 ansiWeb = function() {	
 
-	/**
-	 * Font source image
-	 */
-	this.fontImage = new Image();
-	this.fontImage.src = 'images/font_pc_80x25.png';
+	this.rgba = function(rr,gg,bb,aa)
+	{
+		this.r=rr;
+		this.g=gg;
+		this.b=bb;
+		this.a=aa;
 
-	/**
-	 * Single character height
-	 */
-	this.fontHeight = 16;
+		this.getRGBString = function()
+		{
+			return 'rgb('+this.r+','+this.g+','+this.b+')';
+		}
 
-	/**
-	 * Single character width
-	 */
-	this.fontWidth	=  9;
+		this.getRGBAString = function()
+		{
+			return 'rgba('+this.r+','+this.g+','+this.b+','+this.a+')';
+		}
+	}  
 
-	/**
-	 * Size relation for preview display
-	 */
-	this.previewSize = 1/4;
+	this.vec2 = function()
+	{
+		this.x = 0;
+		this.y = 0;
+	}
+
+	this.achar = function()
+	{
+		this.chr	= 32;
+		this.bg		=  0;
+		this.color	=  7;
+		
+		this.getData = function()
+		{
+			return this.chr+','+this.bg+','+this.color
+		}
+	}
+
+	this.aFont = function()
+	{
+		this.image  = null;
+		this.width  = 0;
+		this.height = 0;
+
+		this.init = function(src, width, height, callbackObject)
+		{
+			this.image = $(new Image()).load(function() { callbackObject.checkPreload() }).attr('src', src).get(0);
+			this.width = width;
+			this.height = height;
+		}
+	}
+
+	this.aCanvas = function()
+	{
+		this.colors = new Array();
+
+		this.canvas			= null;
+		this.canvasContext	= null;
+
+		this.blockCanvas	= null;
+
+		/**
+		 * Font object
+		 */
+		this.font = null;
+
+		/**
+		 * Actual height (lines) of ANSI
+		 */
+		this.ansiHeight	= 0;
+
+		this.init = function(htmlCanvasObject)
+		{
+			this.canvas = htmlCanvasObject;
+			this.canvasContext = this.canvas.getContext('2d');
+			this.clear();
+		}
+
+		this.setFont = function(font)
+		{
+			this.font = font;
+		}
+
+		this.setColors = function(colors)
+		{
+			this.colors = colors;
+		}
+
+		/**
+		 * Copies given block from canvas to temporary block memory
+		 * @param	{Integer}	x	x coordinate of block
+		 * @param	{Integer}	y	y coordinate of block
+		 * @param	{Integer}	w	width of block
+		 * @param	{Integer}	h	height of block
+		 * @return	void
+		 */		
+		this.copyBlock = function(x, y, w, h)
+		{
+			var width = w * this.font.width;
+			var height = h * this.font.height;
+			this.blockCanvas = $('<canvas width="'+width+'" height="'+height+'"></canvas>').get(0);
+			var context = this.blockCanvas.getContext('2d');
+			context.drawImage(this.canvas, x * this.font.width, y * this.font.height , width, height, 0, 0, width, height);
+		}
+
+		/**
+		 * Pastes saved block to canvas at given coordinates
+		 * @param	{Integer}	x	x coordinate to paste block to
+		 * @param	{Integer}	y	y coordinate to paste block to
+		 * @return	void
+		 */		
+		this.pasteBlock = function(x, y)
+		{
+			var width = this.blockCanvas.width;
+			var height = this.blockCanvas.height;
+			this.canvasContext.drawImage(this.blockCanvas, 0, 0, width, height, x * this.font.width, y * this.font.height, width, height);
+		}
+
+		/**
+		 * Shifts columns left or right at cursor position, depending on direction
+		 * @param	{Integer}	x			cursor x position
+		 * @param	{Integer}	direction	1 for right, -1 for left
+		 * @param	{Integer}	blank		number of column to blank
+		 * @return	void
+		 */		
+		this.shiftColumns = function(x, direction, blank)
+		{
+			var shiftStart = x;
+			if (direction == -1) {
+				shiftStart++;
+			}
+			var width = this.canvas.width - (x * this.font.width);
+			var height = this.ansiHeight * this.font.height;
+			var tempCanvas = $('<canvas width="'+width+'" height="'+height+'"></canvas>').get(0);
+			var tempCanvasContext = tempCanvas.getContext('2d');
+
+			tempCanvasContext.drawImage(this.canvas, shiftStart * this.font.width, 0, width, height, 0, 0, width, height);
+			this.canvasContext.fillRect(blank * this.font.width, 0, this.font.width, height);
+			this.canvasContext.drawImage(tempCanvas, 0, 0, width, height, (shiftStart + direction) * this.font.width, 0, width, height);
+		}
+
+		/**
+		 * Shifts rows up or down at cursor position, depending on direction
+		 * @param	{Integer}	y			cursor y position
+		 * @param	{Integer}	direction	1 for down, -1 for up
+		 * @param	{Integer}	blank		number of row to blank
+		 * @return	void
+		 */		
+		this.shiftRows = function(y, direction, blank)
+		{
+			var shiftStart = y;
+			if (direction == -1) {
+				shiftStart++;
+			}
+			var width = this.canvas.width;
+			var height = (this.ansiHeight - y) * this.font.height;
+			var tempCanvas = $('<canvas width="'+width+'" height="'+height+'"></canvas>').get(0);
+			var tempCanvasContext = tempCanvas.getContext('2d');
+
+			tempCanvasContext.drawImage(this.canvas, 0, shiftStart * this.font.height, width, height, 0, 0, width, height);
+			this.canvasContext.fillRect( 0, blank * this.font.height, width, this.font.height);
+			this.canvasContext.drawImage(tempCanvas, 0, 0, width, height, 0, (shiftStart + direction) * this.font.height, width, height);
+		}
+
+		/**
+		 * Redraws the entire ANSI
+		 * @param	{Array}		data	Array of achars
+		 * @return	void
+		 */
+		this.draw = function(data) 
+		{
+			var width = this.canvas.width / this.font.width;
+
+			for(var i=0; i < data.length && Math.floor(i / width) < this.ansiHeight; i++) {
+				this.drawCharacter(i % width, Math.floor(i / width), data[i]);
+			}
+		}
+
+		/**
+		 * draws the characters of the specified block
+		 *
+		 * @param	{Integer}	x		x position start of block
+		 * @param	{Integer}	y		y position start of block
+		 * @param	{Integer}	w		width of block in columns
+		 * @param	{Integer}	h		height of block in rows
+		 * @param	{Array}		data	Array of achar objects of characters to draw
+		 * @return	void
+		 */		
+		this.drawBlock = function(x, y, w, h, data)
+		{
+			var myData = data.slice();
+			for (var xx = 0; xx < w; xx++) {
+				for (yy = 0; yy < h; yy++) {
+					this.drawCharacter(x + xx, y + yy, myData.shift());
+				}
+			}
+		}
+
+		/**
+		 * draws the character at the given position
+		 * @param	{Integer}	x		character x position
+		 * @param	{Integer}	y		character y position
+		 * @param	{Integer}	char	achar object of character to draw
+		 * @return	void
+		 */
+		this.drawCharacter = function(x, y, achar)
+		{
+			try {
+				// background color
+				if (achar.bg >= 0) {
+					this.canvasContext.fillStyle = this.colors[achar.bg].getRGBString();
+					this.canvasContext.fillRect(x * this.font.width,
+													y * this.font.height,
+													this.font.width,
+													this.font.height);
+				}
+		
+				// character color and character
+				if (achar.chr != 32) {
+					this.canvasContext.drawImage(this.font.image,
+													achar.chr * this.font.width,
+													achar.color * this.font.height,
+													this.font.width,
+													this.font.height,
+													x * this.font.width,
+													y * this.font.height,
+													this.font.width,
+													this.font.height);
+				}
+			} catch(e) {
+			}
+
+			this.ansiHeight = Math.max(this.ansiHeight, y);
+		}
+
+		/**
+		 * Clears the canvas
+		 * @return	void
+		 */
+		this.clear = function()
+		{
+			this.canvasContext.fillStyle = 'rgb(0,0,0)';
+			this.canvasContext.fillRect(0, 0, this.canvas.width, this.canvas.height);
+		}
+	}
 
 	/**
 	 * Various key constants
@@ -121,22 +317,22 @@ ansiWeb = function() {
 	 * ANSI color definitions
 	 */
 	this.colors = new Array(
-		new rgba(0,0,0,1),
-		new rgba(0,0,171,1),
-		new rgba(0,171,0,1),
-		new rgba(0,171,171,1),
-		new rgba(171,0,0,1),
-		new rgba(171,0,171,1),
-		new rgba(171,87,0,1),
-		new rgba(171,171,171,1),
-		new rgba(87,87,87,1),
-		new rgba(87,87,255,1),
-		new rgba(87,255,87,1),
-		new rgba(87,255,255,1),
-		new rgba(255,87,87,1),
-		new rgba(255,87,255,1),
-		new rgba(255,255,87,1),
-		new rgba(255,255,255,1)
+		new this.rgba(0,0,0,1),
+		new this.rgba(0,0,171,1),
+		new this.rgba(0,171,0,1),
+		new this.rgba(0,171,171,1),
+		new this.rgba(171,0,0,1),
+		new this.rgba(171,0,171,1),
+		new this.rgba(171,87,0,1),
+		new this.rgba(171,171,171,1),
+		new this.rgba(87,87,87,1),
+		new this.rgba(87,87,255,1),
+		new this.rgba(87,255,87,1),
+		new this.rgba(87,255,255,1),
+		new this.rgba(255,87,87,1),
+		new this.rgba(255,87,255,1),
+		new this.rgba(255,255,87,1),
+		new this.rgba(255,255,255,1)
 	);
 
 	/**
@@ -192,7 +388,7 @@ ansiWeb = function() {
 	/**
 	 * Length of a row in characters
 	 */
-	this.rowLength	= 80;
+	this.columns	= 80;
 
 	/**
 	 * Maximum number of rows
@@ -237,106 +433,166 @@ ansiWeb = function() {
 	/**
 	 * Array of achar, holding the ANSI data
 	 */	
-	this.data		= new Array(this.rows * this.rowLength);
+	this.data		= new Array(this.rows * this.columns);
 
 	/**
 	 * Current cursor position (relative to scroll offset)
 	 */	
- 	this.cursorPos	= new vec2();
+ 	this.cursorPos	= new this.vec2();
 
 	/**
 	 * Cursor position at which Shift key was pressed (relative to scroll offset)
 	 */		
-	this.shiftPos	= new vec2();	
+	this.shiftPos	= new this.vec2();	
 
 	/**
 	 * Marked block position (relative to scroll offset)
 	 */			
-	this.blockPos	= new vec2();
+	this.blockPos	= new this.vec2();
 
 	/**
 	 * Marked block size
 	 */			
-	this.blockSize	= new vec2();
+	this.blockSize	= new this.vec2();
 
 	/**
 	 * Marked block data
 	 */				
 	this.blockData	= new Array(1*1);
 
-	/**
-	 * Marked block of canvas
-	 */				
-	this.blockCanvas = null;
-
-	/**
-	 * Marked block of preview canvas
-	 */				
-	this.blockPreviewCanvas	= null;
-
-	this.mainCanvasId		= 'offcanvas';
-	this.previewCanvasId	= 'smallcanvas';
-	this.keysetCanvasId		= 'canvaskeys';
-	this.statusLineId		= 'editstatus';
-	this.blockMarkerId		= 'blockmarker';
-	this.helpScreenId		= 'edithelp';
-	this.cursorPosId		= 'ansipos';
-	this.saveButtonId		= 'savebutton';
-	this.colorSelectorId	= 'colorselectors';
-	this.charColorSelectBaseId			= 'color';
-	this.backgroundColorSelectBaseId	= 'bgcolor';
-	this.previewFrameMarkerId = 'previewarea';
-	this.cursorMarkerId = 'cursormarker';
+	this.blockInput = false;
 
 	this.mainCanvas				= null;
-	this.mainCanvasContext		= null;
 	this.previewCanvas			= null;
-	this.previewCanvasContext	= null;
+
+	this.baseElement			= null;
+	this.cursorPositionText		= null;
 	this.keysetCanvas			= null;
 	this.keysetCanvasContext	= null;
+	this.colorSelectorElement	= null;
+	this.statusElement			= null;
+
+	this.mainCanvasContainer	= null;
+	this.mainCanvasElement		= null;
+	this.previewCanvasContainer	= null;
+	this.previewCanvasElement	= null;
+
+	this.cursorElement			= null;
+	this.blockMarkerElement		= null;
+	this.previewAreaElememt		= null;
+
+	this.helpScreen				= null;
+
+	this.fonts = new Array(new Array(new this.aFont(), new this.aFont()));
+	this.preloadCounter = 0;
+
+	this.init = function(type) {
+
+		me = this;
+		switch (type) {
+			case 'amiga':
+				this.fonts[0][0].init('images/font_amiga.png', 8, 11, me);
+				this.fonts[0][1].init('images/font_amiga_preview.png', 2, 3, me);
+				break;
+			case 'ansi':
+			default:
+				this.fonts.push(new Array(new this.aFont, new this.aFont()));
+				this.fonts[0][0].init('images/font_pc_80x25.png', 9, 16, me);
+				this.fonts[0][1].init('images/font_pc_80x25_preview.png', 2, 4, me);
+				this.fonts[1][0].init('images/font_pc_80x50.png', 9, 8, me);
+				this.fonts[1][1].init('images/font_pc_80x50_preview.png', 2, 2, me);
+				break;
+		}
+	}
+
+	this.checkPreload = function()
+	{
+		this.preloadCounter++;
+		if (this.preloadCounter == (this.fonts.length * 2)) {
+			this.run();
+		}
+	}
 
 	/**
 	* Initializes the editor
 	* @return	void
 	*/
-	this.init = function()
+	this.run = function()
 	{
-		this.mainCanvas = $('#'+this.mainCanvasId).get(0);
-		this.mainCanvasContext = this.mainCanvas.getContext('2d');
-		this.clear();
+		me = this;
+		
+		this.baseElement = $('#ansiweb'+this.ansiId);
+		var header = $('<div class="header"></div>').appendTo(this.baseElement);
+		var nav = $('<div class="editnav"></div>').appendTo(header);
 
-		this.previewCanvas = $('#'+this.previewCanvasId).get(0);
-		this.previewCanvasContext = this.previewCanvas.getContext('2d');
-		this.clearPreview();
-
-		this.keysetCanvas = $('#'+this.keysetCanvasId).get(0);
+		this.saveButton = $('<a href="#ansiweb'+this.ansiId+'"> save </a>').appendTo(nav);
+		this.saveButton.click(function() { me.save(); });
+		el = $('<a href="#ansiweb'+this.ansiId+'"> - </a>').appendTo(nav);
+		el.click(function() { me.resizeCanvas(-16*4); });
+		el = $('<a href="#ansiweb'+this.ansiId+'"> + </a>').appendTo(nav);
+		el.click(function() { me.resizeCanvas(16*4); });
+		el = $('<a href="#ansiweb'+this.ansiId+'"> help </a>').appendTo(nav);
+		el.click(function() { me.toggleHelp(); });
+		
+		var keys = $('<div></div>').appendTo(header);
+		this.cursorPositionText = $('<span>pos:</span>').appendTo(keys);
+		var sets = $('<canvas width="600" height="16"></canvas>').appendTo(keys);
+		this.keysetCanvas = sets.get(0);
 		this.keysetCanvasContext = this.keysetCanvas.getContext('2d');
+		this.colorSelectorElement = $('<div class="colorselectors"></div>').appendTo(header);
+		$('<span>colors: </span>').appendTo(this.colorSelectorElement);
+		this.statusElement = $('<div class="editstatus"></div>').appendTo(header);
 
-		this.setupColorSelector();
-		this.setupEditorNavigation();
+		this.mainCanvasContainer = $('<div class="maincanvascontainer"></div>').appendTo(this.baseElement);
+
+		this.mainCanvasElement = $('<canvas class="maincanvas" width="720" height="16000"></canvas>').appendTo(this.mainCanvasContainer);
+		this.mainCanvas = new this.aCanvas();
+		this.mainCanvas.init(this.mainCanvasElement.get(0));
+		this.mainCanvas.setFont(this.fonts[0][0]);
+		this.mainCanvas.setColors(this.colors);
+
+		this.previewCanvasContainer = $('<div class="previewcanvascontainer"></div>').appendTo(this.baseElement);
+		this.previewCanvasElement = $('<canvas class="previewcanvas" width="160" height="4000"></canvas>').appendTo(this.previewCanvasContainer);
+		this.previewCanvas = new this.aCanvas();
+		this.previewCanvas.init(this.previewCanvasElement.get(0));
+		this.previewCanvas.setFont(this.fonts[0][1]);
+		this.previewCanvas.setColors(this.colors);
+
+		this.helpScreen = $('.ansiwebhelp');
+		var offset = this.mainCanvasContainer.offset();
+		this.helpScreen.css({
+			'top' : offset.top,
+			'left' : offset.left,
+			'width' : parseInt(this.mainCanvasContainer.css('width')) - parseInt(this.helpScreen.css('padding-left')) - parseInt(this.helpScreen.css('padding-right')),
+			'height' : parseInt(this.mainCanvasContainer.css('height')) - parseInt(this.helpScreen.css('padding-top')) - parseInt(this.helpScreen.css('padding-bottom'))
+		});
+
 		this.setupCursorMarker();
 		this.setupPreviewFrameMarker();
+		this.shiftPos.x = -1;
+		this.blockMarkerElement = $('<div class="blockmarker"></div>').appendTo(this.mainCanvasContainer);
+		this.updateBlockMarker();
 
 		if (this.dataSet) {
-			for (var i = 0; i < this.ansiHeight; i++) {
-				this.redrawLine(i);
-				this.redrawPreviewLine(i);
-			}
+			this.mainCanvas.ansiHeight = this.ansiHeight;
+			this.previewCanvas.ansiHeight = this.ansiHeight;
+			this.mainCanvas.draw(this.data);
+			this.previewCanvas.draw(this.data);
 		} else {
 			for (var i = 0; i < this.data.length; i++) {
-				this.data[i] = new achar();
+				this.data[i] = new this.achar();
 			}
 		}
 
+		this.setupColorSelector();
 		this.redrawKeys();
 		this.resizeCanvas(0);
 		this.testCursorValid();
 		this.adjustCursorMarker();
 
-		me = this;
-		$(document).keydown(function(e) {return me.onKeyDown(e);});
-		$(document).keyup(function(e) {return me.onKeyUp(e);});
+		$(document).keyup(function(e) {me.onKeyUp(e);});
 		$(document).keypress(function(e) {return me.onKeyPress(e);});
+		$(document).keydown(function(e) {return me.onKeyDown(e);});
 	}
 
 	/**
@@ -347,79 +603,66 @@ ansiWeb = function() {
 	{
 		me = this;
 		for(var i = 0; i < 16; i++) {
-			var el = $('<a id="'+this.charColorSelectBaseId+i+'"></a>').appendTo('#'+this.colorSelectorId);
-			el.css({'background-color' : 'rgb('+this.colors[i].r+','+this.colors[i].g+','+this.colors[i].b+')'});
+			var el = $('<a class="charcolor"></a>').appendTo(this.colorSelectorElement);
+			el.css({'background-color' : this.colors[i].getRGBString()});
 			el.attr('colorvalue', i);
-			el.click(function() { me.setCharColor($('#'+this.id).attr('colorvalue')); });
+			el.click(function() { me.setCharColor($(this).attr('colorvalue')); });
 		}
-		$('<span> bg: </span>').appendTo('#'+this.colorSelectorId);
+		this.setCharColor(this.charColor);
+		$('<span> bg: </span>').appendTo(this.colorSelectorElement);
 		for(var i = 0; i < this.numBackgroundColors; i++) {
-			var el = $('<a id="'+this.backgroundColorSelectBaseId+i+'"></a>').appendTo('#'+this.colorSelectorId);
-			el.css({'background-color' : 'rgb('+this.colors[i].r+','+this.colors[i].g+','+this.colors[i].b+')'});
+			var el = $('<a class="backgroundcolor"></a>').appendTo(this.colorSelectorElement);
+			el.css({'background-color' :  this.colors[i].getRGBString()});
 			el.attr('colorvalue', i);
-			el.click(function() { me.setBackgroundColor($('#'+this.id).attr('colorvalue')); });
+			el.click(function() { me.setBackgroundColor($(this).attr('colorvalue')); });
 		}
-	}
-
-	/**
-	 * Creates the editor navigation elements
-	 * @return	void
-	 */
-	this.setupEditorNavigation = function()
-	{
-		me = this;
-		var el = $('<a href="#edit0r"> save </a>').appendTo('.editnav');
-		el.click(function() { me.save(); });
-		el = $('<a href="#edit0r"> - </a>').appendTo('.editnav');
-		el.click(function() { me.resizeCanvas(-16*4); });
-		el = $('<a href="#edit0r"> + </a>').appendTo('.editnav');
-		el.click(function() { me.resizeCanvas(16*4); });
-		el = $('<a href="#edit0r"> help </a>').appendTo('.editnav');
-		el.click(function() { me.toggleHelp(); });
+		this.setBackgroundColor(this.backgroundColor);
 	}
 
 	this.setupPreviewFrameMarker = function()
 	{
-		var offset = $('#'+this.previewCanvasId).offset();
+		var offset = this.previewCanvasElement.offset();
 
-		var el = $('<div id="'+this.previewFrameMarkerId+'"></div>').appendTo('#ansiweb');
-		el.css({	'position' : 'absolute', 
-					'top' : offset.top + (this.scroll * (Math.round(this.fontHeight * this.previewSize))) - parseInt($('#'+this.previewFrameMarkerId).css('borderTopWidth')),
-					'left' : offset.left - parseInt($('#'+this.previewFrameMarkerId).css('border-left-width')),
-					'width' : (this.width * (Math.round(this.fontWidth * this.previewSize))),
-					'height' : (this.height * (Math.round(this.fontHeight * this.previewSize)))});
+		this.previewAreaElement = $('<div class="previewarea"></div>').appendTo(this.baseElement);
+		this.previewAreaElement.css({	'position' : 'absolute', 
+					'top' : offset.top + (this.scroll * this.previewCanvas.font.height) - parseInt(this.previewAreaElement.css('borderTopWidth')),
+					'left' : offset.left - parseInt(this.previewAreaElement.css('border-left-width')),
+					'width' : (this.width * this.previewCanvas.font.width),
+					'height' : (this.height * this.previewCanvas.font.height)});
 	}
 
 	this.adjustPreviewFrameMarker = function()
 	{
-		$('#'+this.previewCanvasId).css({'top' : -Math.max((this.height + this.scroll) * this.fontHeight * this.previewSize - $('#'+this.previewCanvasId).parent().height(),0)});
+		this.previewCanvasElement.css({'top' : -Math.max((this.height + this.scroll) * this.previewCanvas.font.height - this.previewCanvasContainer.height(),0)});
 
-		var offset = $('#'+this.previewCanvasId).offset();
+		var offset = this.previewCanvasElement.offset();
 
-		$('#'+this.previewFrameMarkerId).css({
-			'top' : offset.top + (this.scroll * (Math.round(this.fontHeight * this.previewSize))) - parseInt($('#'+this.previewFrameMarkerId).css('borderTopWidth')),
-			'left' : offset.left - parseInt($('#'+this.previewFrameMarkerId).css('border-left-width')),
-			'width' : (this.width * (Math.round(this.fontWidth * this.previewSize))),
-			'height' : (this.height * (Math.round(this.fontHeight * this.previewSize)))});
+		this.previewAreaElement.css({
+			'top' : offset.top + (this.scroll * this.previewCanvas.font.height) - parseInt(this.previewAreaElement.css('borderTopWidth')),
+			'left' : offset.left - parseInt(this.previewAreaElement.css('border-left-width')),
+			'width' : (this.width * this.previewCanvas.font.width),
+			'height' : (this.height * this.previewCanvas.font.height)});
 	}
 
 	this.setupCursorMarker = function()
 	{
-		var el = $('<div id="'+this.cursorMarkerId+'"></div>').appendTo('#ansiweb');
-		el.css({	'position' : 'absolute', 
-					'width' : this.fontWidth,
-					'height' : this.fontHeight});
+		this.cursorElement = $('<div class="cursor"></div>').appendTo(this.baseElement);
+		this.cursorElement.css({	'position' : 'absolute', 
+					'width' : this.mainCanvas.font.width,
+					'height' : this.mainCanvas.font.height});
 
 		this.adjustCursorMarker();
 	}
 
 	this.adjustCursorMarker = function()
 	{
-		var offset = $('#'+this.mainCanvasId).parent().offset();
+		var offset = this.mainCanvasContainer.offset();
 
-		$('#'+this.cursorMarkerId).css({
-			'top' : offset.top + ((this.cursorPos.y) * this.fontHeight) - parseInt($('#'+this.cursorMarkerId).css('borderTopWidth')),
-			'left' : offset.left + (this.cursorPos.x * this.fontWidth) - parseInt($('#'+this.cursorMarkerId).css('border-left-width'))});
+		this.cursorElement.css({
+			'top' : offset.top + ((this.cursorPos.y) * this.mainCanvas.font.height) - parseInt(this.cursorElement.css('borderTopWidth')),
+			'left' : offset.left + (this.cursorPos.x * this.mainCanvas.font.width) - parseInt(this.cursorElement.css('border-left-width')),
+			'width' : this.mainCanvas.font.width,
+			'height' : this.mainCanvas.font.height});
 	}
 
 	/* 
@@ -436,13 +679,14 @@ ansiWeb = function() {
 	 */		
 	this.onKeyUp = function(evt)
 	{
-		switch (evt.keyCode) {
-			case this.KEY_SHIFT:
-				this.shiftDown = false;
-				if (this.shiftPos.x != this.cursorPos.x) {
-					this.setMode(this.MODE_BLOCK_EDIT);
-				}
-				break;
+		if (this.blockInput) {
+			return;
+		}
+		if (evt.keyCode == this.KEY_SHIFT) {
+			this.shiftDown = false;
+			if (this.shiftPos.x != this.cursorPos.x || this.shiftPos.y != this.cursorPos.y) {
+				this.setMode(this.MODE_BLOCK_EDIT);
+			}
 		}
 	}
 
@@ -452,6 +696,12 @@ ansiWeb = function() {
 	 */		
 	this.onKeyDown = function(evt)
 	{
+		if (this.blockInput && !(evt.altKey && String.fromCharCode(evt.keyCode) == 'H')) {
+			return false;
+		}
+
+		var handled = true;
+
 		switch(evt.keyCode)
 		{
 			case this.KEY_SHIFT:
@@ -472,6 +722,7 @@ ansiWeb = function() {
 			case this.KEY_LEFT:
 				if (evt.altKey) {
 					this.deleteColumn();
+					window.onbeforeunload = function() { return 'key right'; }
 				} else if (evt.ctrlKey) {
 					this.decCharColor();
 				} else {
@@ -492,7 +743,7 @@ ansiWeb = function() {
 					if (this.shiftDown) {
 						this.updateBlockMarker();
 					}
-				}				
+				}
 				break;
 
 			case this.KEY_UP:
@@ -527,7 +778,7 @@ ansiWeb = function() {
 			
 			case this.KEY_BACKSPACE:
 				this.cursorPos.x--;
-				this.data[this.cursorPos.x + this.cursorPos.y * this.width] = new achar();			
+				this.data[this.cursorPos.x + this.cursorPos.y * this.width] = new this.achar();			
 				break;
 			
 			case this.KEY_HOME:
@@ -550,9 +801,9 @@ ansiWeb = function() {
 					this.cursorPos.y = this.height - 1;
 				}
 				me = this;
-				$('#'+this.mainCanvasId).animate(
-					{top:(me.scroll)*-me.fontHeight}, 150, 'swing',
-					function(){$('#'+me.blockMarkerId).css({'marginTop' : -me.scroll * me.fontHeight});}
+				this.mainCanvasElement.animate(
+					{top:(me.scroll)*-me.mainCanvas.font.height}, 150, 'swing',
+					function(){$('#'+me.blockMarkerId).css({'marginTop' : -me.scroll * me.mainCanvas.font.height});}
 				);
 
 				this.testCursorValid();
@@ -567,15 +818,84 @@ ansiWeb = function() {
 					this.cursorPos.y = 0;
 				}
 				me = this;				
-				$('#'+this.mainCanvasId).animate(
-					{top:(me.scroll)*-me.fontHeight}, 150 , 'swing',
-					function(){$('#'+me.blockMarkerId).css({'marginTop' : -me.scroll * me.fontHeight});}
+				this.mainCanvasElement.animate(
+					{top:(me.scroll)*-me.mainCanvas.font.height}, 150 , 'swing',
+					function(){$('#'+me.blockMarkerId).css({'marginTop' : -me.scroll * me.mainCanvas.font.height});}
 				  );
 				
 				this.testCursorValid();
 				this.adjustCursorMarker();
 				this.adjustPreviewFrameMarker();
 				break;
+
+			default:
+				var key = String.fromCharCode(evt.keyCode);
+
+				switch (this.mode) {
+					case this.MODE_BLOCK_EDIT:
+						switch (key) {
+							case 'C':
+								this.setMode(this.MODE_BLOCK_COPY);
+								this.setMode(this.MODE_BLOCK_MOVE_MOVE);
+								break;
+							case 'E':
+								this.blockErase();
+								break;
+							case 'F':
+								this.setMode(this.MODE_BLOCK_FILL_SELECT);
+								break;
+							case 'M':
+								this.setMode(this.MODE_BLOCK_MOVE);
+								this.setMode(this.MODE_BLOCK_MOVE_MOVE);
+								break;
+						}
+						break;
+
+					case this.MODE_BLOCK_MOVE_MOVE:
+						switch (key) {
+							case 'P': this.pasteBlockData(this.cursorPos.x, this.cursorPos.y); break;
+						}
+						break;
+
+					case this.MODE_BLOCK_FILL_SELECT:
+						switch (key) {
+							case 'C': this.setMode(this.MODE_BLOCK_FILL); break;
+							case 'F': this.blockFillCharColor(); break;
+							case 'K': this.blockFillBackgroundColor(); break;
+						}
+						break;
+
+					case this.MODE_BLOCK_FILL:
+						blockFillChar(charCode);
+						break;
+
+					case this.MODE_EDIT:
+						if (evt.altKey) {
+							switch (key) {
+								case 'A': break; // color menu (?obsolete?)
+								case 'B': break; // block commands
+								case 'C': this.clearScreen(); break;
+								case 'D': break; // sauce screen
+								case 'E': break; // switch canvas
+								case 'H': this.toggleHelp(); break;
+								case 'I': this.insertLine(); break;
+								case 'L': break; // load screen
+								case 'M': this.toggleLineMode(); break;
+								case 'O': break; // config screen
+		//						case 'R': break; // block restore
+								case 'R': this.mainCanvas.draw(this.data); this.previewCanvas.draw(this.data); break; // for debug purposes, ALT+R is redraw for now
+								case 'S': break; // save screen
+								case 'T': break; // tab setup
+								case 'U': this.pickupColor(); break;
+								case 'V': break; // switch vga viewing mode (?obsolete?)
+								case 'X': break; // exit ;)
+								case 'Y': this.deleteLine(); break;
+								case 'Z': break; // toggle blinking/iCE color
+							} 
+						} else {
+							handled = false;
+						}
+				}
 		}
 
 		if (evt.keyCode >= this.KEY_F1 && evt.keyCode <= this.KEY_F10) {
@@ -588,12 +908,19 @@ ansiWeb = function() {
 			} else {
 				this.insertChar(evt.keyCode - this.KEY_F1);
 			}
+			// no idea how else to stop Safari from reloading (on F5)
+			// or Chrome or Safari from closing the window (ALT/CTRL + F4)
+			window.onbeforeunload = function() { return 'Unfortunately your browser won\'t allow Javascript to suppress the default action triggered by this function key and is attempting to leave the page. If you allow it to do so, all changes will be lost.'; }
+			handled = true;
+		} else {
+			// reset of onbeforeunload text; could be linked to a status flag so it will only be triggered if there are _unsaved_ changes
+			window.onbeforeunload = function() { return 'Your browser is attempting to leave the page. If you allow it to do so, all changes will be lost.'; }
 		}
 
 		this.testCursorValid();
 		this.adjustCursorMarker();
 
-		return false;
+		return (!handled);
 	}
 
 	/**
@@ -602,92 +929,30 @@ ansiWeb = function() {
 	 */		
 	this.onKeyPress = function(evt)
 	{
-		var charCode = evt.charCode;
-
-		if (charCode == 0) {
+		if (this.blockInput) {
 			return false;
 		}
 
-		var key = String.fromCharCode(charCode);
+		var charCode = evt.charCode;
 
-		switch (this.mode) {
-			case this.MODE_BLOCK_EDIT:
-				switch (key) {
-					case 'c':
-						this.setMode(this.MODE_BLOCK_COPY);
-						this.setMode(this.MODE_BLOCK_MOVE_MOVE);
-						break;
-					case 'e':
-						this.blockErase();
-						break;
-					case 'f':
-						this.setMode(this.MODE_BLOCK_FILL_SELECT);
-						break;
-					case 'm':
-						this.setMode(this.MODE_BLOCK_MOVE);
-						this.setMode(this.MODE_BLOCK_MOVE_MOVE);
-						break;
-				}
-				break;
-
-			case this.MODE_BLOCK_MOVE_MOVE:
-				switch (key) {
-					case 'p': this.pasteBlockData(this.cursorPos.x, this.cursorPos.y); break;
-				}
-				break;
-
-			case this.MODE_BLOCK_FILL_SELECT:
-				switch (key) {
-					case 'c': this.setMode(this.MODE_BLOCK_FILL); break;
-					case 'f': this.blockFillCharColor(); break;
-					case 'k': this.blockFillBackgroundColor(); break;
-				}
-				break;
-
-			case this.MODE_BLOCK_FILL:
-				blockFillChar(charCode);
-				break;
-
-			case this.MODE_EDIT:
-				if (evt.altKey) {
-					switch (key) {
-						case 'a': break; // color menu (?obsolete?)
-						case 'b': break; // block commands
-						case 'c': this.clearScreen(); break;
-						case 'd': break; // sauce screen
-						case 'e': break; // switch canvas
-						case 'h': this.toggleHelp(); break;
-						case 'i': this.insertLine(); break;
-						case 'l': break; // load screen
-						case 'm': this.toggleLineMode(); break;
-						case 'o': break; // config screen
-//						case 'r': break; // block restore
-						case 'r': this.redraw(); this.redrawPreview(); break; // for debug purposes, ALT+R is redraw for now
-						case 's': break; // save screen
-						case 't': break; // tab setup
-						case 'u': this.pickupColor(); break;
-						case 'v': break; // switch vga viewing mode (?obsolete?)
-						case 'x': break; // exit ;)
-						case 'y': this.deleteLine(); break;
-						case 'z': break; // toggle blinking/iCE color
-					}
-				} else {
-					var position = (this.cursorPos.y + this.scroll) * this.rowLength + this.cursorPos.x;
-					this.data[position].chr	= charCode;
-					this.data[position].bg	= this.backgroundColor;
-					this.data[position].color= this.charColor;
-					this.redrawCharacter(this.cursorPos.x, (this.cursorPos.y + this.scroll));
-					this.redrawPreviewCharacter(this.cursorPos.x, (this.cursorPos.y + this.scroll));
-					this.cursorPos.x++;
-
-					// make sure that block mode will not be triggered
-					// when a character is entered that required the shift key
-					if (this.shiftDown) {
-						this.shiftPos.x++;
-					}
-				}
+		if (charCode == 0 || this.mode != this.MODE_EDIT || evt.altKey) {
+			return false;
 		}
-		
+
+		var position = (this.cursorPos.y + this.scroll) * this.columns + this.cursorPos.x;
+		this.data[position].chr	= charCode;
+		this.data[position].bg	= this.backgroundColor;
+		this.data[position].color= this.charColor;
+		this.mainCanvas.drawCharacter(this.cursorPos.x, (this.cursorPos.y + this.scroll), this.data[position]);
+		this.previewCanvas.drawCharacter(this.cursorPos.x, (this.cursorPos.y + this.scroll), this.data[position]);
+		this.cursorPos.x++;
+
+		// make sure that block mode will not be triggered
+		// when a character is entered that required the shift key
+		if (this.shiftDown) {
+			this.shiftPos.x++;
+		}
+
 		this.testCursorValid();
 		this.adjustCursorMarker();
 		return false;
@@ -708,11 +973,10 @@ ansiWeb = function() {
 	 */
 	this.setBackgroundColor = function(which)
 	{
-		for(var i=0; i < this.numBackgroundColors; i++) {
-			$('#'+this.backgroundColorSelectBaseId+i).css({'border' : '1px solid black'});
-		}
-		$('#'+this.backgroundColorSelectBaseId+which).css({'border' : '1px dotted white'});
+		var colors = this.colorSelectorElement.children('.backgroundcolor');
+		colors.eq(this.backgroundColor).removeClass('selected');
 		this.backgroundColor = which;
+		colors.eq(this.backgroundColor).addClass('selected');
 		this.redrawKeys();
 	}
 
@@ -739,11 +1003,10 @@ ansiWeb = function() {
 	 */
 	this.setCharColor = function(which)
 	{
-		for(var i=0; i < 16; i++) {
-			$('#'+this.charColorSelectBaseId+i).css({'border' : '1px solid black'});
-		}
-		$('#'+this.charColorSelectBaseId+which).css({'border' : '1px dotted white'});
+		var colors = this.colorSelectorElement.children('.charcolor');
+		colors.eq(this.charColor).removeClass('selected');
 		this.charColor = which;
+		colors.eq(this.charColor).addClass('selected');
 		this.redrawKeys();
 	}
 
@@ -768,7 +1031,7 @@ ansiWeb = function() {
 	 * @return	void
 	 */
 	this.pickupColor = function() {
-		var position = (this.cursorPos.y + this.scroll) * this.rowLength + this.cursorPos.x;
+		var position = (this.cursorPos.y + this.scroll) * this.columns + this.cursorPos.x;
 		this.setCharColor(this.data[position].color);
 		this.setBackgroundColor(this.data[position].bg);
 	}	
@@ -780,7 +1043,7 @@ ansiWeb = function() {
 	 */
 	this.setStatus = function(status)
 	{
-		$('#'+this.statusLineId).html(status);
+		this.statusElement.html(status);
 	}
 
 	/**
@@ -833,23 +1096,19 @@ ansiWeb = function() {
 	this.clearScreen = function()
 	{
 		if (confirm('Do you really want to clear the screen?')) {
-			this.clear();
-			this.clearPreview();
+			this.mainCanvas.clear();
+			this.previewCanvas.clear();
 			// this does not only clear the screen, but also the ANSI data
 			// is there anything else that needs to be set here for a clean slate?
 			for (var i = 0; i < this.data.length; i++) {
-				this.data[i] = new achar();
+				this.data[i] = new this.achar();
 			}
-			this.cursorPos	= new vec2();
-			this.shiftPos	= new vec2();	
-			this.blockPos	= new vec2();
-			this.blockSize	= new vec2();
+			this.cursorPos	= new this.vec2();
+			this.shiftPos	= new this.vec2();	
+			this.blockPos	= new this.vec2();
+			this.blockSize	= new this.vec2();
 			this.adjustCursorMarker();
 		}
-
-		// unsetting ALT key here since the confirm dialog
-		// seems to swallow the keyup event
-		this.altDown = false;
 	}
 
 	/**
@@ -858,25 +1117,21 @@ ansiWeb = function() {
 	 */	
 	this.toggleLineMode = function()
 	{
-		if (this.fontHeight == 16) {
-			this.height = this.height / 2;
-			this.fontHeight = 8;
-			// small gotcha at this point:
-			// changing font image source works, but takes
-			// a moment to load, so when toggling for the
-			// first time, screen displays garbage at first
-			this.fontImage.src = 'images/font_pc_80x50.png';
-		} else {
-			this.height = this.height * 2;
-			this.fontHeight = 16;
-			this.fontImage.src = 'images/font_pc_80x25.png';
+		if (this.fonts.length == 2) {
+			if (this.mainCanvas.font.height == 16) {
+				this.mainCanvas.setFont(this.fonts[1][0]);
+				this.previewCanvas.setFont(this.fonts[1][1]);
+			} else {
+				this.mainCanvas.setFont(this.fonts[0][0]);
+				this.previewCanvas.setFont(this.fonts[0][1]);
+			}
+			this.mainCanvas.clear()
+			this.mainCanvas.draw(this.data);
+			this.previewCanvas.clear();
+			this.previewCanvas.draw(this.data);
+			this.redrawKeys();
+			this.resizeCanvas(0);
 		}
-		this.clear()
-		this.redraw();
-		this.clearPreview();
-		this.redrawPreview();
-		this.redrawKeys();
-		this.resizeCanvas(0);
 	}
 
 	/**
@@ -904,7 +1159,7 @@ ansiWeb = function() {
 	{
 		this.dataSet = true;
 		for(var i=0; i < this.data.length; i++) {
-			this.data[i] = new achar();
+			this.data[i] = new this.achar();
 		}
 
 		for(var i=0; i < arr.length / 3; i++) {
@@ -930,42 +1185,41 @@ ansiWeb = function() {
 		return ret;
 	}
 
-
 	this.resetSaveButton = function()
 	{
-		$('#'+this.saveButtonId).html('save');
+		this.saveButton.html('save');
 	}
 
 	this.save = function()
 	{
-		$('#'+this.saveButtonId).html('( saving... )');
+		this.saveButton.html('( saving... )');
 
 		me = this;
 		$.post('/ajax_saveansi/', {
 			data: me.getData(),
 			id: me.ansiId
 		}, function() {
-			$('#'+me.saveButtonId).html('( saved \\o/ )');
+			me.saveButton.html('( saved \\o/ )');
 			setTimeout('resetSaveButton();',2000);
 		});
 	}
 
 	this.resizeCanvas = function(size)
 	{
-		var siz = $('#canvdiv').css('height');
+		var siz = this.mainCanvasContainer.css('height');
 		siz = parseInt(siz.replace('px','')) + size;
-		$('#canvdiv').css({'height' : siz});
-		this.height = Math.round(siz / this.fontHeight);
+		this.mainCanvasContainer.css({'height' : siz});
+		this.height = Math.round(siz / this.mainCanvas.font.height);
 	}
 
 	this.toggleHelp = function()
 	{
-		if ($('#'+this.helpScreenId).css('display') != 'block') {
-			$('#'+this.helpScreenId).css({'display' : 'block'});
-			$('#canvdiv').css({'display' : 'none'});
+		if (this.helpScreen.css('display') != 'block') {
+			this.helpScreen.css({'display' : 'block'});
+			this.blockInput = true;
 		} else {
-			$('#'+this.helpScreenId).css({'display' : 'none'});
-			$('#canvdiv').css({'display' : 'block'});
+			this.helpScreen.css({'display' : 'none'});
+			this.blockInput = false;
 		}
 	}
 
@@ -980,17 +1234,16 @@ ansiWeb = function() {
 		if (this.mode == this.MODE_BLOCK_FILL) {
 			this.blockFillChar(this.specialCharacterSets[this.currentset][which]);
 		} else if (this.mode == this.MODE_EDIT) {
-			var position = (this.cursorPos.y + this.scroll) * this.rowLength + this.cursorPos.x;
+			var position = (this.cursorPos.y + this.scroll) * this.columns + this.cursorPos.x;
 			this.data[position].chr		= this.specialCharacterSets[this.currentset][which];
 			this.data[position].color	= this.charColor;
 			this.data[position].bg		= this.backgroundColor;
-			this.redrawCharacter(this.cursorPos.x, (this.cursorPos.y + this.scroll));
-			this.redrawPreviewCharacter(this.cursorPos.x, (this.cursorPos.y + this.scroll));
+			this.mainCanvas.drawCharacter(this.cursorPos.x, (this.cursorPos.y + this.scroll), this.data[position]);
+			this.previewCanvas.drawCharacter(this.cursorPos.x, (this.cursorPos.y + this.scroll), this.data[position]);
 			this.cursorPos.x++;
 			this.ansiHeight = Math.max(this.ansiHeight, (this.cursorPos.y + 1 + this.scroll));
 		}
 	}
-
 
 	/**
 	 * Ensures that the cursor stays within valid bounds of the canvas
@@ -998,24 +1251,24 @@ ansiWeb = function() {
 	 */		
 	this.testCursorValid = function()
 	{
-		this.cursorPos.x = Math.min(Math.max(0, this.cursorPos.x), this.width - 1);		
+		this.cursorPos.x = Math.min(Math.max(0, this.cursorPos.x), this.width - 1);
 		if (this.cursorPos.y < 0) {
 			this.scroll--;
 			this.scroll = Math.max(0, this.scroll);
 			this.cursorPos.y = 0;
-			$('#'+this.mainCanvasId).css({'top' : -this.scroll * this.fontHeight});
-			$('#'+this.blockMarkerId).css({'marginTop' : -this.scroll * this.fontHeight});
+			this.mainCanvasElement.css({'top' : -this.scroll * this.mainCanvas.font.height});
+			this.blockMarkerElement.css({'marginTop' : -this.scroll * this.mainCanvas.font.height});
 		} else if (this.cursorPos.y == this.height) {
 			this.cursorPos.y = this.height - 1;
 			this.scroll++;
 			if ((this.scroll + this.height) > this.rows) {
 				this.scroll--;
 			}
-			$('#'+this.mainCanvasId).css({'top' : -this.scroll * this.fontHeight});
-			$('#'+this.blockMarkerId).css({'marginTop' : -this.scroll * this.fontHeight});
+			this.mainCanvasElement.css({'top' : -this.scroll * this.mainCanvas.font.height});
+			this.blockMarkerElement.css({'marginTop' : -this.scroll * this.mainCanvas.font.height});
 		}
 
-		$('#'+this.cursorPosId).html('pos: '+(this.cursorPos.x + 1)+','+(1 + this.cursorPos.y + this.scroll));
+		this.cursorPositionText.html('pos: '+(this.cursorPos.x + 1)+','+(1 + this.cursorPos.y + this.scroll));
 		this.adjustPreviewFrameMarker();
 	}
 
@@ -1041,8 +1294,8 @@ ansiWeb = function() {
 			}
 		}
 		
-		this.copyCanvasBlock(this.blockPos.x, this.blockPos.y, this.blockSize.x, this.blockSize.y);
-		this.copyPreviewCanvasBlock(this.blockPos.x, this.blockPos.y, this.blockSize.x, this.blockSize.y);
+		this.mainCanvas.copyBlock(this.blockPos.x, this.blockPos.y, this.blockSize.x, this.blockSize.y);
+		this.previewCanvas.copyBlock(this.blockPos.x, this.blockPos.y, this.blockSize.x, this.blockSize.y);
 	}
 
 	/**
@@ -1058,8 +1311,8 @@ ansiWeb = function() {
 				this.data[xx + x + (y + yy) * this.width] = this.blockData[x + y * this.blockSize.x];
 			}
 		}
-		this.pasteCanvasBlock(xx, yy);
-		this.pastePreviewCanvasBlock(xx, yy);
+		this.mainCanvas.pasteBlock(xx, yy);
+		this.previewCanvas.pasteBlock(xx, yy);
 	} 
 
 	/**
@@ -1068,13 +1321,15 @@ ansiWeb = function() {
 	 */		
 	this.blockFillCharColor = function()
 	{
+		var blockData = new Array();
 		for(var x = 0; x < this.blockSize.x; x++) {
 			for(var y = 0; y < this.blockSize.y; y++) {
 				this.data[x + this.blockPos.x + (y + this.blockPos.y) * this.width].color = this.charColor;
+				blockData.push(this.data[x + this.blockPos.x + (y + this.blockPos.y) * this.width]);
 			}
 		}
-		this.redrawBlock(this.blockPos.x, this.blockPos.y, this.blockSize.x, this.blockSize.y);
-		this.redrawPreviewBlock(this.blockPos.x, this.blockPos.y, this.blockSize.x, this.blockSize.y);
+		this.mainCanvas.drawBlock(this.blockPos.x, this.blockPos.y, this.blockSize.x, this.blockSize.y, blockData);
+		this.previewCanvas.drawBlock(this.blockPos.x, this.blockPos.y, this.blockSize.x, this.blockSize.y, blockData);
 		this.setMode(this.MODE_BLOCK_EDIT);
 	}
 
@@ -1084,13 +1339,15 @@ ansiWeb = function() {
 	 */		
 	this.blockFillBackgroundColor = function()
 	{
+		var blockData = new Array();
 		for(var x = 0; x < this.blockSize.x; x++) {
 			for(var y = 0; y < this.blockSize.y; y++) {
 				this.data[x + this.blockPos.x + (y + this.blockPos.y) * this.width].bg = this.backgroundColor;
+				blockData.push(this.data[x + this.blockPos.x + (y + this.blockPos.y) * this.width]);
 			}
 		}
-		this.redrawBlock(this.blockPos.x, this.blockPos.y, this.blockSize.x, this.blockSize.y);
-		this.redrawPreviewBlock(this.blockPos.x, this.blockPos.y, this.blockSize.x, this.blockSize.y);
+		this.mainCanvas.drawBlock(this.blockPos.x, this.blockPos.y, this.blockSize.x, this.blockSize.y, blockData);
+		this.previewCanvas.drawBlock(this.blockPos.x, this.blockPos.y, this.blockSize.x, this.blockSize.y, blockData);
 		this.setMode(this.MODE_BLOCK_EDIT);
 	}
 
@@ -1101,13 +1358,15 @@ ansiWeb = function() {
 	 */		
 	this.blockFillChar = function(charCode)
 	{
+		var blockData = new Array();
 		for(var x = 0; x < this.blockSize.x; x++) {
 			for(var y = 0; y < this.blockSize.y; y++) {
 				this.data[x + this.blockPos.x + (y + this.blockPos.y) * this.width].chr = charCode;
+				blockData.push(this.data[x + this.blockPos.x + (y + this.blockPos.y) * this.width]);
 			}
 		}
-		this.redrawBlock(this.blockPos.x, this.blockPos.y, this.blockSize.x, this.blockSize.y);
-		this.redrawPreviewBlock(this.blockPos.x, this.blockPos.y, this.blockSize.x, this.blockSize.y);
+		this.mainCanvas.drawBlock(this.blockPos.x, this.blockPos.y, this.blockSize.x, this.blockSize.y, blockData);
+		this.previewCanvas.drawBlock(this.blockPos.x, this.blockPos.y, this.blockSize.x, this.blockSize.y, blockData);
 		this.setMode(this.MODE_BLOCK_EDIT);
 	}
 
@@ -1126,9 +1385,10 @@ ansiWeb = function() {
 	 */		
 	this.updateBlockMarker = function()
 	{
+
 		if(this.shiftPos.x == -1)
 		{
-			$('#'+this.blockMarkerId).css({'display' : 'none'});
+			this.blockMarkerElement.css({'display' : 'none'});
 			return;
 		}
 
@@ -1137,12 +1397,12 @@ ansiWeb = function() {
 		this.blockPos.x		= Math.min(this.shiftPos.x, this.cursorPos.x);
 		this.blockPos.y		= Math.min(this.shiftPos.y, this.cursorPos.y);
 
-		$('#'+this.blockMarkerId).css({
+		this.blockMarkerElement.css({
 			'display'	: 'block',
-			'width'		: this.blockSize.x * this.fontWidth,
-			'height'	: this.blockSize.y * this.fontHeight,
-			'marginLeft': this.blockPos.x * this.fontWidth,
-			'marginTop'	: this.blockPos.y * this.fontHeight
+			'width'		: this.blockSize.x * this.mainCanvas.font.width,
+			'height'	: this.blockSize.y * this.mainCanvas.font.height,
+			'marginLeft': this.blockPos.x  * this.mainCanvas.font.width,
+			'marginTop'	: this.blockPos.y  * this.mainCanvas.font.height
 		});
 	}
 
@@ -1161,11 +1421,13 @@ ansiWeb = function() {
 	this.insertLine = function()
 	{
 		for (var x = 0; x < this.width; x++) {
-			this.data.splice((this.cursorPos.y + this.scroll) * this.width, 0, new achar());
+			this.data.splice((this.cursorPos.y + this.scroll) * this.width, 0, new this.achar());
 		}
-		this.shiftRows(this.cursorPos.y + this.scroll, 1, this.cursorPos.y + this.scroll);
-		this.shiftPreviewRows(this.cursorPos.y + this.scroll, 1, this.cursorPos.y + this.scroll);
+		this.mainCanvas.shiftRows(this.cursorPos.y + this.scroll, 1, this.cursorPos.y + this.scroll);
+		this.previewCanvas.shiftRows(this.cursorPos.y + this.scroll, 1, this.cursorPos.y + this.scroll);
 		this.ansiHeight++;
+		this.mainCanvas.ansiHeight = this.ansiHeight;
+		this.previewCanvas.ansiHeight = this.ansiHeight;
 	}
 
 	/**
@@ -1175,9 +1437,11 @@ ansiWeb = function() {
 	this.deleteLine = function()
 	{
 		this.data.splice((this.cursorPos.y + this.scroll) * this.width, this.width);
-		this.shiftRows(this.cursorPos.y + 1 + this.scroll, -1, this.ansiHeight - 1);
-		this.shiftPreviewRows(this.cursorPos.y + 1 + this.scroll, -1, this.ansiHeight - 1);
-		this.ansiHeight--;	
+		this.mainCanvas.shiftRows(this.cursorPos.y + this.scroll, -1, this.ansiHeight - 1);
+		this.previewCanvas.shiftRows(this.cursorPos.y + this.scroll, -1, this.ansiHeight - 1);
+		this.ansiHeight--;
+		this.mainCanvas.ansiHeight = this.ansiHeight;
+		this.previewCanvas.ansiHeight = this.ansiHeight;
 	}
 
 	/**
@@ -1187,11 +1451,11 @@ ansiWeb = function() {
 	this.deleteColumn = function()
 	{
 		for (var y = 0; y < this.ansiHeight; y++) {
-			this.data.splice((y + 1) * this.width, 0, new achar());
+			this.data.splice((y + 1) * this.width, 0, new this.achar());
 			this.data.splice(y * this.width + this.cursorPos.x, 1);
 		}
-		this.shiftColumns(this.cursorPos.x + 1, -1, (this.width - 1));
-		this.shiftPreviewColumns(this.cursorPos.x + 1, -1, (this.width - 1));
+		this.mainCanvas.shiftColumns(this.cursorPos.x, -1, (this.width - 1));
+		this.previewCanvas.shiftColumns(this.cursorPos.x, -1, (this.width - 1));
 	}
 
 	/**
@@ -1201,11 +1465,11 @@ ansiWeb = function() {
 	this.insertColumn = function()
 	{
 		for (var y = 0; y < this.ansiHeight; y++) {
-			this.data.splice(y * this.width + this.cursorPos.x, 0, new achar());
+			this.data.splice(y * this.width + this.cursorPos.x, 0, new this.achar());
 			this.data.splice((y + 1 ) * this.width, 1);
 		}
-		this.shiftColumns(this.cursorPos.x, 1, this.cursorPos.x);
-		this.shiftPreviewColumns(this.cursorPos.x, 1, this.cursorPos.x);
+		this.mainCanvas.shiftColumns(this.cursorPos.x, 1, this.cursorPos.x);
+		this.previewCanvas.shiftColumns(this.cursorPos.x, 1, this.cursorPos.x);
 	}
 
 	/* 
@@ -1222,7 +1486,7 @@ ansiWeb = function() {
 	 */
 	this.redrawKeys = function() 
 	{
-		this.keysetCanvasContext.fillStyle = 'rgb('+this.colors[this.backgroundColor].r+','+this.colors[this.backgroundColor].g+','+this.colors[this.backgroundColor].b+')';
+		this.keysetCanvasContext.fillStyle = this.colors[this.backgroundColor].getRGBString();
 		this.keysetCanvasContext.fillRect (0, 0, 500, this.keysetCanvas.height);
 
 		for (var i = 0; i < this.specialCharacterSets[this.currentset].length; i++) {
@@ -1234,439 +1498,35 @@ ansiWeb = function() {
 				col = 7;
 			}
 
-			this.keysetCanvasContext.drawImage(	this.fontImage,
-							myS.charCodeAt(i) * this.fontWidth,
-							col * this.fontHeight,
-							this.fontWidth,
-							this.fontHeight,
-							p + 9 + this.fontWidth,
+			this.keysetCanvasContext.drawImage(	this.mainCanvas.font.image,
+							myS.charCodeAt(i) * this.mainCanvas.font.width,
+							col * this.mainCanvas.font.height,
+							this.mainCanvas.font.width,
+							this.mainCanvas.font.height,
+							p + 9 + this.mainCanvas.font.width,
 							0,
-							this.fontWidth,
-							this.fontHeight);
+							this.mainCanvas.font.width,
+							this.mainCanvas.font.height);
 
-			this.keysetCanvasContext.drawImage(	this.fontImage,
-							myS.charCodeAt(10) * this.fontWidth,
-							col * this.fontHeight,
-							this.fontWidth,
-							this.fontHeight,
-							p + 18 + this.fontWidth,
+			this.keysetCanvasContext.drawImage(	this.mainCanvas.font.image,
+							myS.charCodeAt(10) * this.mainCanvas.font.width,
+							col * this.mainCanvas.font.height,
+							this.mainCanvas.font.width,
+							this.mainCanvas.font.height,
+							p + 18 + this.mainCanvas.font.width,
 							0,
-							this.fontWidth,
-							this.fontHeight);
+							this.mainCanvas.font.width,
+							this.mainCanvas.font.height);
 
-			this.keysetCanvasContext.drawImage(	this.fontImage,
-							this.specialCharacterSets[this.currentset][i] * this.fontWidth,
-							this.charColor * this.fontHeight,
-							this.fontWidth,
-							this.fontHeight,
-							p + 27 + this.fontWidth,
+			this.keysetCanvasContext.drawImage(	this.mainCanvas.font.image,
+							this.specialCharacterSets[this.currentset][i] * this.mainCanvas.font.width,
+							this.charColor * this.mainCanvas.font.height,
+							this.mainCanvas.font.width,
+							this.mainCanvas.font.height,
+							p + 27 + this.mainCanvas.font.width,
 							0,
-							this.fontWidth,
-							this.fontHeight);
+							this.mainCanvas.font.width,
+							this.mainCanvas.font.height);
 		}
 	}
-
-	/* 
-	 * /------------------------------\
-	 * 
-	 *   Main canvas drawing methods
-	 * 
-	 * \------------------------------/
-	 */
-
-	/**
-	 * Copies given block from canvas to temporary block memory
-	 * @param	{Integer}	x	x coordinate of block
-	 * @param	{Integer}	y	y coordinate of block
-	 * @param	{Integer}	w	width of block
-	 * @param	{Integer}	h	height of block
-	 * @return	void
-	 */		
-	this.copyCanvasBlock = function(x, y, w, h)
-	{
-		var width = w * this.fontWidth;
-		var height = h * this.fontHeight;
-		this.blockCanvas = $('<canvas width="'+width+'" height="'+height+'"></canvas>').get(0);
-		var context = this.blockCanvas.getContext('2d');
-		context.drawImage(this.mainCanvas, x * this.fontWidth, y * this.fontHeight , width, height, 0, 0, width, height);
-	}
-
-	/**
-	 * Pastes saved block to canvas at given coordinates
-	 * @param	{Integer}	x	x coordinate to paste block to
-	 * @param	{Integer}	y	y coordinate to paste block to
-	 * @return	void
-	 */		
-	this.pasteCanvasBlock = function(x, y)
-	{
-		var width = this.blockCanvas.width;
-		var height = this.blockCanvas.height;
-		this.mainCanvasContext.drawImage(this.blockCanvas, 0, 0, width, height, x * this.fontWidth, y * this.fontHeight, width, height);
-	}
-
-	/**
-	 * Shifts columns left or right at cursor position, depending on direction
-	 * @param	{Integer}	x			number of column for shift start
-	 * @param	{Integer}	direction	1 for right, -1 for left
-	 * @param	{Integer}	blank		number of column to blank
-	 * @return	void
-	 */		
-	this.shiftColumns = function(x, direction, blank)
-	{
-		var width = (this.width - this.cursorPos.x) * this.fontWidth;
-		var height = this.ansiHeight * this.fontHeight;
-		var canv = $('<canvas width="'+width+'" height="'+height+'"></canvas>').get(0);
-		var context = canv.getContext('2d');
-
-		context.drawImage(this.mainCanvas, x * this.fontWidth, 0 , width, height, 0, 0, width, height);
-		this.mainCanvasContext.fillRect(blank * this.fontWidth, 0, this.fontWidth, height);
-		this.mainCanvasContext.drawImage(canv, 0, 0, width, height, (x + direction) * this.fontWidth, 0, width, height);
-	}
-
-	/**
-	 * Shifts rows up or down at cursor position, depending on direction
-	 * @param	{Integer}	y			number of row for shift start
-	 * @param	{Integer}	direction	1 for down, -1 for up
-	 * @param	{Integer}	blank		number of row to blank
-	 * @return	void
-	 */		
-	this.shiftRows = function(y, direction, blank)
-	{
-		var width = this.width * this.fontWidth;
-		var height = (this.ansiHeight - (this.cursorPos.y + this.scroll)) * this.fontHeight;
-		var canv = $('<canvas width="'+width+'" height="'+height+'"></canvas>').get(0);
-		var context = canv.getContext('2d');
-
-		context.drawImage(this.mainCanvas, 0, y * this.fontHeight, width, height, 0, 0, width, height);
-		this.mainCanvasContext.fillRect( 0, blank * this.fontHeight, width, this.fontHeight);
-		this.mainCanvasContext.drawImage(canv, 0, 0, width, height, 0, (y + direction) * this.fontHeight, width, height);
-	}
-
-	/**
-	 * Redraws the entire ANSI
-	 * @return	void
-	 */
-	this.redraw = function() 
-	{
-		for(var i=0;i < this.ansiHeight; i++) {
-			this.redrawLine(i);
-		}
-	}
-
-	/**
-	 * Redraws the current cursor line
-	 * @return	void
-	 */		
-	this.redrawCursorLine = function()
-	{
-		this.redrawLine(this.cursorPos.y + this.scroll);
-	}
-
-	/**
-	 * Redraws the characters of the specified block
-	 * @param	{Integer}	x	x position start of block
-	 * @param	{Integer}	y	y position start of block
-	 * @param	{Integer}	w	width of block in columns
-	 * @param	{Integer}	h	height of block in rows
-	 * @return	void
-	 */		
-	this.redrawBlock = function(x, y, w, h)
-	{
-		for (var xx = 0; xx < w; xx++) {
-			for (yy = 0; yy < h; yy++) {
-				this.redrawCharacter(x + xx, y + yy);
-			}
-		}
-	}
-
-	/**
-	 * Redraws the given line
-	 * @param	{Integer}	y	number of the line to redraw (numbering starts at 0)
-	 * @return	void
-	 */
-	this.redrawLine = function(y) 
-	{
-		for (var x = 0; x < this.rowLength; x++) {
-			this.redrawCharacter(x, y);
-		}
-	}
-
-	/**
-	 * Redraws the character at the given position
-	 * @param	{Integer}	x	character x position
-	 * @param	{Integer}	y	character y position
-	 * @return	void
-	 */
-	this.redrawCharacter = function(x,y)
-	{
-		var which = y * this.rowLength + x;
-
-		try {
-			// background color
-			if (this.data[which].bg >= 0) {
-				this.mainCanvasContext.drawImage(this.fontImage,
-												219 * this.fontWidth, // 219 is the ANSI full block character ;)
-												this.data[which].bg * this.fontHeight,
-												this.fontWidth,
-												this.fontHeight,
-												x * this.fontWidth,
-												y * this.fontHeight,
-												this.fontWidth,
-												this.fontHeight);
-			}
-	
-			// character color and character
-			if (this.data[which].chr != 32) {
-				this.mainCanvasContext.drawImage(this.fontImage,
-												this.data[which].chr * this.fontWidth,
-												this.data[which].color * this.fontHeight,
-												this.fontWidth,
-												this.fontHeight,
-												x * this.fontWidth,
-												y * this.fontHeight,
-												this.fontWidth,
-												this.fontHeight);
-			}
-		} catch(e) {
-		}
-
-	}
-
-	/**
-	 * Clears the canvas
-	 * @return	void
-	 */
-	this.clear = function()
-	{
-		this.mainCanvasContext.fillStyle = "rgb(0,0,0)";
-		this.mainCanvasContext.fillRect(0, 0, this.mainCanvas.width, this.mainCanvas.height);
-	}
-
-	/* 
-	 * /---------------------------------\
-	 * 
-	 *   Preview canvas drawing methods
-	 * 
-	 * \---------------------------------/
-	 */
-
-	/**
-	 * Copies given block from preview pane to temporary block memory
-	 * @param	{Integer}	x	x coordinate of block
-	 * @param	{Integer}	y	y coordinate of block
-	 * @param	{Integer}	w	width of block
-	 * @param	{Integer}	h	height of block
-	 * @return	void
-	 */		
-	this.copyPreviewCanvasBlock = function(x, y, w, h)
-	{
-		var pixelWidth = Math.round(this.fontWidth * this.previewSize);
-		var pixelHeight = Math.round(this.fontHeight * this.previewSize);
-
-		var width = w * pixelWidth;
-		var height = h * pixelHeight;
-		this.blockPreviewCanvas = $('<canvas width="'+width+'" height="'+height+'"></canvas>').get(0);
-		var context = this.blockPreviewCanvas.getContext('2d');
-		context.drawImage(this.previewCanvas, x * pixelWidth, y * pixelHeight, width, height, 0, 0, width, height);
-	}
-
-	/**
-	 * Pastes saved block to preview pane at given coordinates
-	 * @param	{Integer}	x	x coordinate to paste block to
-	 * @param	{Integer}	y	y coordinate to paste block to
-	 * @return	void
-	 */		
-	this.pastePreviewCanvasBlock = function(x, y)
-	{
-		var pixelWidth = Math.round(this.fontWidth * this.previewSize);
-		var pixelHeight = Math.round(this.fontHeight * this.previewSize);
-
-		var width = this.blockPreviewCanvas.width;
-		var height = this.blockPreviewCanvas.height;
-		this.previewCanvasContext.drawImage(this.blockPreviewCanvas, 0, 0, width, height, x * pixelWidth, y * pixelHeight, width, height);
-	}
-
-	/**
-	 * Shifts preview pane columns left or right at cursor position, depending on direction
-	 * @param	{Integer}	x			number of column for shift start
-	 * @param	{Integer}	direction	1 for right, -1 for left
-	 * @param	{Integer}	blank		number of column to blank
-	 * @return	void
-	 */		
-	this.shiftPreviewColumns = function(x, direction, blank)
-	{
-		var pixelWidth = Math.round(this.fontWidth * this.previewSize);
-		var pixelHeight = Math.round(this.fontHeight * this.previewSize);
-
-		var width = (this.width - this.cursorPos.x) * pixelWidth;
-		var height = this.ansiHeight * pixelHeight;
-		var canv = $('<canvas width="'+width+'" height="'+height+'"></canvas>').get(0);
-		var context = canv.getContext('2d');
-
-		context.drawImage(this.previewCanvas, x * pixelWidth, 0 , width, height, 0, 0, width, height);
-		this.previewCanvasContext.fillRect(blank * pixelWidth, 0, pixelWidth, height);
-		this.previewCanvasContext.drawImage(canv, 0, 0, width, height, (x + direction) * pixelWidth, 0, width, height);
-	}
-
-	/**
-	 * Shifts preview pane rows up or down at cursor position, depending on direction
-	 * @param	{Integer}	y			number of row for shift start
-	 * @param	{Integer}	direction	1 for down, -1 for up
-	 * @param	{Integer}	blank		number of row to blank
-	 * @return	void
-	 */		
-	this.shiftPreviewRows = function(y, direction, blank)
-	{
-		var pixelWidth = Math.round(this.fontWidth * this.previewSize);
-		var pixelHeight = Math.round(this.fontHeight * this.previewSize);
-
-		var width = this.width * pixelWidth;
-		var height = (this.ansiHeight - (this.cursorPos.y + this.scroll)) * pixelHeight;
-		var canv = $('<canvas width="'+width+'" height="'+height+'"></canvas>').get(0);
-		var context = canv.getContext('2d');
-
-		context.drawImage(this.previewCanvas, 0, y * pixelHeight, width, height, 0, 0, width, height);
-		this.previewCanvasContext.fillRect( 0, blank * pixelHeight, width, pixelHeight);
-		this.previewCanvasContext.drawImage(canv, 0, 0, width, height, 0, (y + direction) * pixelHeight, width, height);
-	}
-
-	/**
-	 * Redraws the entire preview pane
-	 * @return	void
-	 */
-	this.redrawPreview = function()
-	{
-		for(var y = 0; y < this.ansiHeight; y++) {
-			this.redrawPreviewLine(y);
-		}
-	}
-
-	/**
-	 * Redraws the current cursor line in the preview pane
-	 * @return	void
-	 */
-	this.redrawPreviewCursorLine = function()
-	{
-		this.redrawPreviewLine(this.cursorPos.y + this.scroll);
-	}
-
-	/**
-	 * Redraws the characters of the specified block in the preview pane
-	 * @param	{Integer}	x	x position start of block
-	 * @param	{Integer}	y	y position start of block
-	 * @param	{Integer}	w	width of block in columns
-	 * @param	{Integer}	h	height of block in rows
-	 * @return	void
-	 */		
-	this.redrawBlock = function(x, y, w, h)
-	{
-		for (var xx = 0; xx < w; xx++) {
-			for (yy = 0; yy < h; yy++) {
-				this.redrawCharacter(x + xx, y + yy);
-			}
-		}
-	}
-
-	/**
-	 * Redraws the given line in the preview pane
-	 * @param	{Integer}	y	number of the line to redraw (numbering starts at 0)
-	 * @return	void
-	 */
-	this.redrawPreviewLine = function(y)
-	{
-		for (var x = 0; x < this.width; x++) {
-			this.redrawPreviewCharacter(x, y);
-		}
-	}
-
-	/**
-	 * Redraws the character at the given position in the preview pane
-	 * @param	{Integer}	x	character x position
-	 * @param	{Integer}	y	character y position
-	 * @return	void
-	 */
-	this.redrawPreviewCharacter = function(x, y)
-	{
-		var pixelWidth = Math.round(this.fontWidth * this.previewSize);
-		var pixelHeight = Math.round(this.fontHeight * this.previewSize);
-
-		var dwhich = y * this.width + x;
-
-		// opacity setting (dithered blocks)
-		switch (this.data[dwhich].chr) {
-			case 176:	a = '0.25'; break;
-			case 177:	a = '0.50'; break;
-			case 178:	a = '0.75'; break;
-			default:	a = '1.0';
-		}
-		
-		var which = this.data[dwhich].color;
-		var colFG = 'rgba('+this.colors[which].r+','+this.colors[which].g+','+this.colors[which].b+','+a+')';
-		
-		var which = this.data[dwhich].bg;
-		var colBG = 'rgba('+this.colors[which].r+','+this.colors[which].g+','+this.colors[which].b+',1.0)';
-	
-		var xp = x * pixelWidth;
-		var yp = y * pixelHeight;
-
-		switch (this.data[dwhich].chr) {
-			case 32: // space character == background color
-				this.previewCanvasContext.fillStyle = colBG;
-				this.previewCanvasContext.fillRect(xp, yp, pixelWidth, pixelHeight);
-			break;
-
-			case 219: // full block == character color
-				this.previewCanvasContext.fillStyle = colFG;
-				this.previewCanvasContext.fillRect (xp, yp, pixelWidth, pixelHeight);
-			break;
-
-			case 178:
-			case 177:
-			case 176: // dithered blocks
-				this.previewCanvasContext.fillStyle = colBG;
-				this.previewCanvasContext.fillRect (xp, yp, pixelWidth, pixelHeight);
-				this.previewCanvasContext.fillStyle = colFG;
-				this.previewCanvasContext.fillRect (xp, yp, pixelWidth, pixelHeight);
-			break;
-			
-			case 223: // half block top
-				this.previewCanvasContext.fillStyle = colBG;
-				this.previewCanvasContext.fillRect (xp, yp + pixelHeight / 2, pixelWidth, pixelHeight / 2);
-				this.previewCanvasContext.fillStyle = colFG;
-				this.previewCanvasContext.fillRect (xp, yp, pixelWidth, pixelHeight / 2);					
-			break;
-
-			case 220: // half block bottom
-				this.previewCanvasContext.fillStyle = colFG;
-				this.previewCanvasContext.fillRect (xp, yp + pixelHeight / 2, pixelWidth, pixelHeight / 2);
-				this.previewCanvasContext.fillStyle = colBG;
-				this.previewCanvasContext.fillRect (xp, yp, pixelWidth, pixelHeight / 2);					
-			break;
-			
-			case 221: // half block left
-				this.previewCanvasContext.fillStyle = colBG;
-				this.previewCanvasContext.fillRect (xp + pixelWidth / 2, yp, pixelWidth / 2, pixelHeight);
-				this.previewCanvasContext.fillStyle = colFG;
-				this.previewCanvasContext.fillRect (xp, yp, pixelWidth / 2, pixelHeight);
-			break;
-
-			case 222: // half block right
-				this.previewCanvasContext.fillStyle = colFG;
-				this.previewCanvasContext.fillRect (xp + pixelWidth / 2, yp, pixelWidth / 2, pixelHeight);
-				this.previewCanvasContext.fillStyle = colBG;
-				this.previewCanvasContext.fillRect (xp, yp, pixelWidth / 2, pixelHeight);
-			break;	
-		}
-	}
-
-	/**
-	 * clears the preview canvas
-	 * @return	void
-	 */	
-	this.clearPreview = function()
-	{
-		this.previewCanvasContext.fillStyle = 'rgb(0,0,0)';
-		this.previewCanvasContext.fillRect (0, 0, this.previewCanvas.width, this.previewCanvas.height);
-	}
-
 }

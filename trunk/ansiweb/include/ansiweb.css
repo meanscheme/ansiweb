@@ -1,4 +1,8 @@
-#ansiweb .header {
+.ansiweb {
+	display: block;
+}
+
+.ansiweb .header {
 	width: 700px;
 	border: 0;
 	display: block;
@@ -6,33 +10,33 @@
 	padding: 10px;
 }
 
-
-#ansiweb .header div {
+.ansiweb .header div {
 	clear: left;
 	height: 25px;
 	margin-bottom: 10px;
 	width: 100%;
 }
 
-#ansiweb .editnav a {
+.ansiweb .editnav a, .ansiwebhelp a {
 	cursor: pointer;
 	float: left;
 	margin-right: 10px;
 	padding: 0 15px;
 	text-decoration: none;
+	color: #fff;
 	background-color: #34B0FF;
 }
 
-#ansiweb span {
+.ansiweb span {
 	float: left;
 	width: 90px;
 }
 
-#ansiweb a + span {
+.ansiweb a + span {
 	width: 20px;
 }
 
-#ansiweb #colorselectors a
+.ansiweb .colorselectors a
 {
 	padding: 0;
 	margin: 0;
@@ -46,7 +50,12 @@
 	border: 1px solid black;
 }
 
-#ansiweb #previewarea
+.ansiweb .colorselectors a.selected
+{
+	border: 1px dotted white;
+}
+
+.ansiweb .previewarea
 {
 	border: 2px dashed #888;
 	position: absolute;
@@ -56,7 +65,7 @@
 	opacity: 0.1;
 }
 
-#ansiweb #cursormarker
+.ansiweb .cursor
 {
 	border: 2px dashed #888;
 	position: absolute;
@@ -66,12 +75,79 @@
 	opacity: 0.5;
 }
 
-#ansiweb #blockmarker
+.ansiweb .blockmarker
 {
-	border: 2px dashed #888;
-	position: absolute;
+	border: 1px dashed #888;
+	position: relative;
+	overflow: hidden;
 	display: block;
 	z-index: 100;
+	top: -16000px;
+	width: 0;
+	height: 0;
 	background-color: #fff;
-	opacity: 0.5;
+	opacity: 0.2;
+}
+
+.ansiweb .maincanvascontainer
+{
+	width:720;
+	height:400px;
+	overflow:hidden;
+	float:left;
+	padding: 0;
+}
+
+.ansiweb .previewcanvascontainer
+{
+	width:160px;
+	height:400px;
+	overflow:hidden;
+	float:left;
+	margin-left: 20px;
+	padding: 0;
+}
+
+.ansiweb .maincanvas, .ansiweb .previewcanvas
+{
+	position: relative;
+	z-index:0;
+	top: 0;
+	left: 0;
+	top:0;
+}
+
+.ansiwebhelp
+{
+	display: none;
+	position: absolute;
+	z-index: 200;
+	background-color: #000;
+	opacity: 0.9;
+	padding: 10px;
+}
+
+.ansiwebhelp table
+{
+	border: 0;
+	padding: 0;
+	margin: 0;
+}
+
+.ansiwebhelp tr
+{
+	min-height: 10px;
+}
+
+.ansiwebhelp th, .ansiwebhelp td
+{
+	text-align: right;
+	padding: 0 10px;
+	margin: 0;
+	border-bottom: 1px solid gray;
+}
+
+.ansiwebhelp td
+{
+	text-align: left;
 }
