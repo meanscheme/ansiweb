@@ -145,15 +145,16 @@ ansiWeb = function() {
 		this.shiftColumns = function(x, direction, blank)
 		{
 			var shiftStart = x;
+			var width = this.canvas.width - (x * this.font.width);
+			var blockWidth = width;
+			var height = this.ansiHeight * this.font.height;
 			if (direction == -1) {
 				shiftStart++;
+				blockWidth -= this.font.width;
 			}
-			var width = this.canvas.width - (x * this.font.width);
-			var height = this.ansiHeight * this.font.height;
 			var tempCanvas = $('<canvas width="'+width+'" height="'+height+'"></canvas>').get(0);
 			var tempCanvasContext = tempCanvas.getContext('2d');
-
-			tempCanvasContext.drawImage(this.canvas, shiftStart * this.font.width, 0, width, height, 0, 0, width, height);
+			tempCanvasContext.drawImage(this.canvas, shiftStart * this.font.width, 0, blockWidth, height, 0, 0, blockWidth, height);
 			this.canvasContext.fillRect(blank * this.font.width, 0, this.font.width, height);
 			this.canvasContext.drawImage(tempCanvas, 0, 0, width, height, (shiftStart + direction) * this.font.width, 0, width, height);
 		}
@@ -168,15 +169,17 @@ ansiWeb = function() {
 		this.shiftRows = function(y, direction, blank)
 		{
 			var shiftStart = y;
-			if (direction == -1) {
-				shiftStart++;
-			}
 			var width = this.canvas.width;
 			var height = (this.ansiHeight - y) * this.font.height;
+			var blockHeight = height;
+			if (direction == -1) {
+				shiftStart++;
+				blockHeight -= this.font.height;
+			}
 			var tempCanvas = $('<canvas width="'+width+'" height="'+height+'"></canvas>').get(0);
 			var tempCanvasContext = tempCanvas.getContext('2d');
 
-			tempCanvasContext.drawImage(this.canvas, 0, shiftStart * this.font.height, width, height, 0, 0, width, height);
+			tempCanvasContext.drawImage(this.canvas, 0, shiftStart * this.font.height, width, blockHeight, 0, 0, width, blockHeight);
 			this.canvasContext.fillRect( 0, blank * this.font.height, width, this.font.height);
 			this.canvasContext.drawImage(tempCanvas, 0, 0, width, height, 0, (shiftStart + direction) * this.font.height, width, height);
 		}
@@ -208,9 +211,9 @@ ansiWeb = function() {
 		this.drawBlock = function(x, y, w, h, data)
 		{
 			var myData = data.slice();
-			for (var xx = 0; xx < w; xx++) {
-				for (yy = 0; yy < h; yy++) {
-					this.drawCharacter(x + xx, y + yy, myData.shift());
+			for (var cx = 0; cx < w; cx++) {
+				for (cy = 0; cy < h; cy++) {
+					this.drawCharacter(x + cx, y + cy, myData.shift());
 				}
 			}
 		}
@@ -219,7 +222,7 @@ ansiWeb = function() {
 		 * draws the character at the given position
 		 * @param	{Integer}	x		character x position
 		 * @param	{Integer}	y		character y position
-		 * @param	{Integer}	char	achar object of character to draw
+		 * @param	{Integer}	achar	achar object of character to draw
 		 * @return	void
 		 */
 		this.drawCharacter = function(x, y, achar)
@@ -249,7 +252,7 @@ ansiWeb = function() {
 			} catch(e) {
 			}
 
-			this.ansiHeight = Math.max(this.ansiHeight, y);
+			this.ansiHeight = Math.max(this.ansiHeight, (y+1));
 		}
 
 		/**
@@ -486,6 +489,9 @@ ansiWeb = function() {
 	this.fonts = new Array(new Array(new this.aFont(), new this.aFont()));
 	this.preloadCounter = 0;
 
+	this.operaRepeatCounter = 0;
+	this.operaRepeatEvent = null;
+
 	this.init = function(type) {
 
 		me = this;
@@ -519,6 +525,12 @@ ansiWeb = function() {
 	*/
 	this.run = function()
 	{
+		var canvasTest = $('<canvas></canvas>');
+		if (!canvasTest.get(0) || !canvasTest.get(0).getContext) {
+			alert('Sorry, your browser does not support the Canvas element and is therefore currently not supported by ansiWeb.');
+			return;
+		}
+
 		me = this;
 		
 		this.baseElement = $('#ansiweb'+this.ansiId);
@@ -536,7 +548,7 @@ ansiWeb = function() {
 		
 		var keys = $('<div></div>').appendTo(header);
 		this.cursorPositionText = $('<span>pos:</span>').appendTo(keys);
-		var sets = $('<canvas width="600" height="16"></canvas>').appendTo(keys);
+		var sets = $('<canvas width="500" height="16"></canvas>').appendTo(keys);
 		this.keysetCanvas = sets.get(0);
 		this.keysetCanvasContext = this.keysetCanvas.getContext('2d');
 		this.colorSelectorElement = $('<div class="colorselectors"></div>').appendTo(header);
@@ -545,14 +557,14 @@ ansiWeb = function() {
 
 		this.mainCanvasContainer = $('<div class="maincanvascontainer"></div>').appendTo(this.baseElement);
 
-		this.mainCanvasElement = $('<canvas class="maincanvas" width="720" height="16000"></canvas>').appendTo(this.mainCanvasContainer);
+		this.mainCanvasElement = $('<canvas class="maincanvas" width="'+this.columns * this.fonts[0][0].width+'" height="'+this.rows * this.fonts[0][0].height+'"></canvas>').appendTo(this.mainCanvasContainer);
 		this.mainCanvas = new this.aCanvas();
 		this.mainCanvas.init(this.mainCanvasElement.get(0));
 		this.mainCanvas.setFont(this.fonts[0][0]);
 		this.mainCanvas.setColors(this.colors);
 
 		this.previewCanvasContainer = $('<div class="previewcanvascontainer"></div>').appendTo(this.baseElement);
-		this.previewCanvasElement = $('<canvas class="previewcanvas" width="160" height="4000"></canvas>').appendTo(this.previewCanvasContainer);
+		this.previewCanvasElement = $('<canvas class="previewcanvas" width="'+this.columns * this.fonts[0][1].width+'" height="'+this.rows * this.fonts[0][1].height+'"></canvas>').appendTo(this.previewCanvasContainer);
 		this.previewCanvas = new this.aCanvas();
 		this.previewCanvas.init(this.previewCanvasElement.get(0));
 		this.previewCanvas.setFont(this.fonts[0][1]);
@@ -674,36 +686,12 @@ ansiWeb = function() {
 	 */
 
 	/**
-	 * Evaluates keyup events
-	 * @return	boolean
+	 * Handles actions of special key events
+	 * @return	void
 	 */		
-	this.onKeyUp = function(evt)
+	this.onSpecialKey = function(evt)
 	{
-		if (this.blockInput) {
-			return;
-		}
-		if (evt.keyCode == this.KEY_SHIFT) {
-			this.shiftDown = false;
-			if (this.shiftPos.x != this.cursorPos.x || this.shiftPos.y != this.cursorPos.y) {
-				this.setMode(this.MODE_BLOCK_EDIT);
-			}
-		}
-	}
-
-	/**
-	 * Evaluates keydown events
-	 * @return	boolean
-	 */		
-	this.onKeyDown = function(evt)
-	{
-		if (this.blockInput && !(evt.altKey && String.fromCharCode(evt.keyCode) == 'H')) {
-			return false;
-		}
-
-		var handled = true;
-
-		switch(evt.keyCode)
-		{
+		switch(evt.keyCode) {
 			case this.KEY_SHIFT:
 				if(!this.shiftDown) {
 					this.shiftPos.x = this.cursorPos.x;
@@ -829,6 +817,92 @@ ansiWeb = function() {
 				break;
 
 			default:
+				if (evt.keyCode >= this.KEY_F1 && evt.keyCode <= this.KEY_F10) {
+					if (evt.altKey) {
+						this.currentset = evt.keyCode - this.KEY_F1;
+						this.redrawKeys();
+					} else if (evt.ctrlKey && evt.keyCode <= this.KEY_F5) {
+						this.currentset = (evt.keyCode - this.KEY_F1 + 10);
+						this.redrawKeys();
+					} else if (!evt.ctrlKey) {
+						this.insertChar(evt.keyCode - this.KEY_F1);
+					}
+					// no idea how else to stop Safari from reloading (on F5)
+					// or Chrome or Safari from closing the window (ALT/CTRL + F4)
+					window.onbeforeunload = function() { return 'Unfortunately your browser won\'t allow Javascript to suppress the default action triggered by this function key and is attempting to leave the page. If you allow it to do so, all changes will be lost.'; }
+				} else {
+					// reset of onbeforeunload text; could be linked to a status flag so it will only be triggered if there are _unsaved_ changes
+					window.onbeforeunload = function() { return 'Your browser is attempting to leave the page. If you allow it to do so, all changes will be lost.'; }
+				}
+		}
+	}
+
+	/**
+	 * Evaluates keyup events
+	 * @return	boolean
+	 */		
+	this.onKeyUp = function(evt)
+	{
+		if (this.blockInput) {
+			return;
+		}
+		if (evt.keyCode == this.KEY_SHIFT) {
+			this.shiftDown = false;
+			if (this.shiftPos.x != this.cursorPos.x || this.shiftPos.y != this.cursorPos.y) {
+				this.setMode(this.MODE_BLOCK_EDIT);
+			}
+		}
+
+		if (this.operaRepeatEvent) {
+			this.operaRepeatEvent = null;
+		}
+	}
+
+	/**
+	 * Evaluates keydown events
+	 * @return	boolean
+	 */		
+	this.onKeyDown = function(evt)
+	{
+		if (this.blockInput && !((evt.altKey || evt.ctrlKey) && String.fromCharCode(evt.keyCode) == 'H')) {
+			return false;
+		}
+
+		var handled = true;
+
+		switch(evt.keyCode)
+		{
+			case this.KEY_SHIFT:
+			case this.KEY_ALT:
+			case this.KEY_CTRL:
+			case this.KEY_ESC:
+			case this.KEY_LEFT:
+			case this.KEY_RIGHT:
+			case this.KEY_UP:
+			case this.KEY_DOWN:
+			case this.KEY_TAB:
+			case this.KEY_BACKSPACE:
+			case this.KEY_HOME:
+			case this.KEY_END:
+			case this.KEY_RETURN:
+			case this.KEY_PAGEDOWN:
+			case this.KEY_PAGEUP:
+			case this.KEY_F1:
+			case this.KEY_F2:
+			case this.KEY_F3:
+			case this.KEY_F4:
+			case this.KEY_F5:
+			case this.KEY_F6:
+			case this.KEY_F7:
+			case this.KEY_F8:
+			case this.KEY_F9:
+			case this.KEY_F10:
+			case this.KEY_F11:
+			case this.KEY_F12:
+				this.onSpecialKey(evt);
+				break;
+
+			default:
 				var key = String.fromCharCode(evt.keyCode);
 
 				switch (this.mode) {
@@ -870,13 +944,25 @@ ansiWeb = function() {
 						break;
 
 					case this.MODE_EDIT:
-						if (evt.altKey) {
+						if (evt.altKey || evt.ctrlKey) {
 							switch (key) {
+								case '1':
+								case '2':
+								case '3':
+								case '4':
+								case '5':
+								case '6':
+								case '7':
+								case '8':
+								case '9': this.currentset = evt.keyCode - 49; this.redrawKeys(); break;
+								case '0': this.currentset = 9; this.redrawKeys(); break;
 								case 'A': break; // color menu (?obsolete?)
 								case 'B': break; // block commands
 								case 'C': this.clearScreen(); break;
 								case 'D': break; // sauce screen
 								case 'E': break; // switch canvas
+								case 'F': this.deleteColumn(); break; // alternative for ALT+Cursor Left
+								case 'G': this.insertColumn(); break; // alternative for ALT+Cursor Right
 								case 'H': this.toggleHelp(); break;
 								case 'I': this.insertLine(); break;
 								case 'L': break; // load screen
@@ -898,28 +984,20 @@ ansiWeb = function() {
 				}
 		}
 
-		if (evt.keyCode >= this.KEY_F1 && evt.keyCode <= this.KEY_F10) {
-			if (evt.altKey) {
-				this.currentset = evt.keyCode - this.KEY_F1;
-				this.redrawKeys();
-			} else if (evt.ctrlKey && evt.keyCode <= this.KEY_F5) {
-				this.currentset = (evt.keyCode - this.KEY_F1 + 10);
-				this.redrawKeys();
-			} else {
-				this.insertChar(evt.keyCode - this.KEY_F1);
-			}
-			// no idea how else to stop Safari from reloading (on F5)
-			// or Chrome or Safari from closing the window (ALT/CTRL + F4)
-			window.onbeforeunload = function() { return 'Unfortunately your browser won\'t allow Javascript to suppress the default action triggered by this function key and is attempting to leave the page. If you allow it to do so, all changes will be lost.'; }
-			handled = true;
-		} else {
-			// reset of onbeforeunload text; could be linked to a status flag so it will only be triggered if there are _unsaved_ changes
-			window.onbeforeunload = function() { return 'Your browser is attempting to leave the page. If you allow it to do so, all changes will be lost.'; }
-		}
-
 		this.testCursorValid();
 		this.adjustCursorMarker();
 
+		if (handled) {
+			this.operaRepeatCounter = 0;
+			this.operaRepeatEvent = evt;
+			evt.cancelBubble = true;
+			if (evt.stopPropagation) {
+				evt.stopPropagation();
+				evt.preventDefault();
+			}
+		} else {
+			this.operaRepeatEvent = null;
+		}
 		return (!handled);
 	}
 
@@ -933,9 +1011,19 @@ ansiWeb = function() {
 			return false;
 		}
 
-		var charCode = evt.charCode;
+		var charCode = evt.which;
 
 		if (charCode == 0 || this.mode != this.MODE_EDIT || evt.altKey) {
+			return false;
+		}
+
+		if (this.operaRepeatEvent) {
+			if (this.operaRepeatCounter) {
+				this.onSpecialKey(this.operaRepeatEvent);
+				this.testCursorValid();
+				this.adjustCursorMarker();
+			}
+			this.operaRepeatCounter++;			
 			return false;
 		}
 
@@ -946,6 +1034,7 @@ ansiWeb = function() {
 		this.mainCanvas.drawCharacter(this.cursorPos.x, (this.cursorPos.y + this.scroll), this.data[position]);
 		this.previewCanvas.drawCharacter(this.cursorPos.x, (this.cursorPos.y + this.scroll), this.data[position]);
 		this.cursorPos.x++;
+		this.ansiHeight = Math.max(this.ansiHeight, (this.cursorPos.y + this.scroll + 1));
 
 		// make sure that block mode will not be triggered
 		// when a character is entered that required the shift key
@@ -1093,6 +1182,10 @@ ansiWeb = function() {
 		this.mode = mode;
 	}
 
+	/**
+	 * Clears screen and all ANSI data after issuing confirm dialog
+	 * @return	void
+	 */	
 	this.clearScreen = function()
 	{
 		if (confirm('Do you really want to clear the screen?')) {
@@ -1168,7 +1261,7 @@ ansiWeb = function() {
 			this.data[i].color	= arr[i*3+2];
 		}
 
-		this.ansiHeight = arr.length / 3 / this.width;
+		this.ansiHeight = arr.length / 3 / this.columns;
 	}
 
 	/**
@@ -1179,7 +1272,7 @@ ansiWeb = function() {
 	this.getData = function()
 	{
 		var ret = '';
-		for (var i = 0; i < (this.ansiHeight + 1) * this.width; i++) {
+		for (var i = 0; i < this.ansiHeight * this.columns; i++) {
 			ret += this.data[i].getData()+',';
 		}
 		return ret;
@@ -1212,6 +1305,12 @@ ansiWeb = function() {
 		this.height = Math.round(siz / this.mainCanvas.font.height);
 	}
 
+	/**
+	 * Toggles visibility of help screen
+	 *
+	 * Note that while help screen is visible, all editor input is blocked.
+	 * @return	void
+	 */		
 	this.toggleHelp = function()
 	{
 		if (this.helpScreen.css('display') != 'block') {
@@ -1268,7 +1367,7 @@ ansiWeb = function() {
 			this.blockMarkerElement.css({'marginTop' : -this.scroll * this.mainCanvas.font.height});
 		}
 
-		this.cursorPositionText.html('pos: '+(this.cursorPos.x + 1)+','+(1 + this.cursorPos.y + this.scroll));
+		this.cursorPositionText.html('pos: '+(this.cursorPos.x + 1)+','+(1 + this.cursorPos.y + this.scroll)+' ('+this.ansiHeight+')');
 		this.adjustPreviewFrameMarker();
 	}
 
@@ -1293,26 +1392,25 @@ ansiWeb = function() {
 				this.blockData[x + y * this.blockSize.x] = this.data[x + this.blockPos.x + (y + this.blockPos.y) * this.width];
 			}
 		}
-		
 		this.mainCanvas.copyBlock(this.blockPos.x, this.blockPos.y, this.blockSize.x, this.blockSize.y);
 		this.previewCanvas.copyBlock(this.blockPos.x, this.blockPos.y, this.blockSize.x, this.blockSize.y);
 	}
 
 	/**
 	 * Pastes data from block buffer to canvas at given position
-	 * @param	{Integer}	xx	x-position to paste block to
-	 * @param	{Integer}	yy	y-position to paste block to
+	 * @param	{Integer}	x	x-position to paste block to
+	 * @param	{Integer}	y	y-position to paste block to
 	 * @return	void
 	 */	
-	this.pasteBlockData = function(xx, yy)
+	this.pasteBlockData = function(x, y)
 	{
-		for(var x = 0; x < this.blockSize.x; x++) {
-			for(var y = 0; y < this.blockSize.y; y++) {
-				this.data[xx + x + (y + yy) * this.width] = this.blockData[x + y * this.blockSize.x];
+		for(var cx = 0; cx < this.blockSize.x; cx++) {
+			for(var cy = 0; cy < this.blockSize.y; cy++) {
+				this.data[x + cx + (cy + y) * this.width] = this.blockData[cx + cy * this.blockSize.x];
 			}
 		}
-		this.mainCanvas.pasteBlock(xx, yy);
-		this.previewCanvas.pasteBlock(xx, yy);
+		this.mainCanvas.pasteBlock(x, y);
+		this.previewCanvas.pasteBlock(x, y);
 	} 
 
 	/**
@@ -1385,7 +1483,6 @@ ansiWeb = function() {
 	 */		
 	this.updateBlockMarker = function()
 	{
-
 		if(this.shiftPos.x == -1)
 		{
 			this.blockMarkerElement.css({'display' : 'none'});
@@ -1415,19 +1512,34 @@ ansiWeb = function() {
 	 */
 
 	/**
+	 * Returns an array containing a new blank line of achar objects
+	 * @return	array
+	 */		
+	this.getNewLine = function()
+	{
+		var newLine = new Array();
+		for (var x = 0; x < this.columns; x++) {
+			newLine.push(new this.achar());
+		}
+		return newLine;
+	}
+
+	/**
 	 * Inserts a new blank line below cursor position
 	 * @return	void
 	 */		
 	this.insertLine = function()
 	{
-		for (var x = 0; x < this.width; x++) {
-			this.data.splice((this.cursorPos.y + this.scroll) * this.width, 0, new this.achar());
+		if (this.cursorPos.y + this.scroll + 1 <= this.ansiHeight) {
+			var below = this.data.splice((this.cursorPos.y + this.scroll) * this.columns, this.data.length - ((this.cursorPos.y + this.scroll) * this.columns));
+			this.data = this.data.concat(this.getNewLine(), below);
+			this.data.splice(this.rows * this.columns, this.data.length - this.rows * this.columns);
+			this.mainCanvas.shiftRows(this.cursorPos.y + this.scroll, 1, this.cursorPos.y + this.scroll);
+			this.previewCanvas.shiftRows(this.cursorPos.y + this.scroll, 1, this.cursorPos.y + this.scroll);
+			this.ansiHeight = Math.min(this.rows, this.ansiHeight + 1);
+			this.mainCanvas.ansiHeight = this.ansiHeight;
+			this.previewCanvas.ansiHeight = this.ansiHeight;
 		}
-		this.mainCanvas.shiftRows(this.cursorPos.y + this.scroll, 1, this.cursorPos.y + this.scroll);
-		this.previewCanvas.shiftRows(this.cursorPos.y + this.scroll, 1, this.cursorPos.y + this.scroll);
-		this.ansiHeight++;
-		this.mainCanvas.ansiHeight = this.ansiHeight;
-		this.previewCanvas.ansiHeight = this.ansiHeight;
 	}
 
 	/**
@@ -1435,37 +1547,39 @@ ansiWeb = function() {
 	 * @return	void
 	 */		
 	this.deleteLine = function()
-	{
-		this.data.splice((this.cursorPos.y + this.scroll) * this.width, this.width);
-		this.mainCanvas.shiftRows(this.cursorPos.y + this.scroll, -1, this.ansiHeight - 1);
-		this.previewCanvas.shiftRows(this.cursorPos.y + this.scroll, -1, this.ansiHeight - 1);
-		this.ansiHeight--;
-		this.mainCanvas.ansiHeight = this.ansiHeight;
-		this.previewCanvas.ansiHeight = this.ansiHeight;
+	{	if (this.cursorPos.y + this.scroll + 1 <= this.ansiHeight) {
+			this.data.splice((this.cursorPos.y + this.scroll) * this.columns, this.columns);
+			this.data = this.data.concat(this.getNewLine());
+			this.mainCanvas.shiftRows(this.cursorPos.y + this.scroll, -1, this.ansiHeight - 1);
+			this.previewCanvas.shiftRows(this.cursorPos.y + this.scroll, -1, this.ansiHeight - 1);
+			this.ansiHeight = Math.max(1, this.ansiHeight - 1);
+			this.mainCanvas.ansiHeight = this.ansiHeight;
+			this.previewCanvas.ansiHeight = this.ansiHeight;
+		 }
 	}
 
 	/**
-	 * Moves content right of the cursor to the left, deleting the current cursor row
+	 * Moves content right of the cursor to the left, deleting the current cursor column
 	 * @return	void
 	 */		
 	this.deleteColumn = function()
 	{
 		for (var y = 0; y < this.ansiHeight; y++) {
-			this.data.splice((y + 1) * this.width, 0, new this.achar());
-			this.data.splice(y * this.width + this.cursorPos.x, 1);
+			this.data.splice((y + 1) * this.columns, 0, new this.achar());
+			this.data.splice(y * this.columns + this.cursorPos.x, 1);
 		}
-		this.mainCanvas.shiftColumns(this.cursorPos.x, -1, (this.width - 1));
-		this.previewCanvas.shiftColumns(this.cursorPos.x, -1, (this.width - 1));
+		this.mainCanvas.shiftColumns(this.cursorPos.x, -1, (this.columns - 1));
+		this.previewCanvas.shiftColumns(this.cursorPos.x, -1, (this.columns - 1));
 	}
 
 	/**
-	 * Moves content to the right, inserting a blank row at cursor position
+	 * Moves content to the right, inserting a blank column at cursor position
 	 * @return	void
 	 */		
 	this.insertColumn = function()
 	{
 		for (var y = 0; y < this.ansiHeight; y++) {
-			this.data.splice(y * this.width + this.cursorPos.x, 0, new this.achar());
+			this.data.splice(y * this.columns + this.cursorPos.x, 0, new this.achar());
 			this.data.splice((y + 1 ) * this.width, 1);
 		}
 		this.mainCanvas.shiftColumns(this.cursorPos.x, 1, this.cursorPos.x);
