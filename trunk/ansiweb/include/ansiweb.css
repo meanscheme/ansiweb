@@ -27,13 +27,14 @@
 	background-color: #34B0FF;
 }
 
-.ansiweb span {
+.ansiweb span:first-child {
 	float: left;
-	width: 140px;
+	width: 135px;
 }
 
 .ansiweb a + span {
-	width: 20px;
+	float: left;
+	padding-left: 10px;
 }
 
 .ansiweb .colorselectors a

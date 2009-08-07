@@ -43,7 +43,7 @@ ansiWeb = function() {
 		this.y = 0;
 	}
 
-	this.achar = function()
+	this.aChar = function()
 	{
 		this.chr	= 32;
 		this.bg		=  0;
@@ -186,7 +186,7 @@ ansiWeb = function() {
 
 		/**
 		 * Redraws the entire ANSI
-		 * @param	{Array}		data	Array of achars
+		 * @param	{Array}		data	Array of aChars
 		 * @return	void
 		 */
 		this.draw = function(data) 
@@ -205,7 +205,7 @@ ansiWeb = function() {
 		 * @param	{Integer}	y		y position start of block
 		 * @param	{Integer}	w		width of block in columns
 		 * @param	{Integer}	h		height of block in rows
-		 * @param	{Array}		data	Array of achar objects of characters to draw
+		 * @param	{Array}		data	Array of aChar objects of characters to draw
 		 * @return	void
 		 */		
 		this.drawBlock = function(x, y, w, h, data)
@@ -222,15 +222,15 @@ ansiWeb = function() {
 		 * draws the character at the given position
 		 * @param	{Integer}	x		character x position
 		 * @param	{Integer}	y		character y position
-		 * @param	{Integer}	achar	achar object of character to draw
+		 * @param	{Integer}	aChar	aChar object of character to draw
 		 * @return	void
 		 */
-		this.drawCharacter = function(x, y, achar)
+		this.drawCharacter = function(x, y, aChar)
 		{
 			try {
 				// background color
-				if (achar.bg >= 0) {
-					this.canvasContext.fillStyle = this.colors[achar.bg].getRGBString();
+				if (aChar.bg >= 0) {
+					this.canvasContext.fillStyle = this.colors[aChar.bg].getRGBString();
 					this.canvasContext.fillRect(x * this.font.width,
 													y * this.font.height,
 													this.font.width,
@@ -238,10 +238,10 @@ ansiWeb = function() {
 				}
 		
 				// character color and character
-				if (achar.chr != 32) {
+				if (aChar.chr != 32) {
 					this.canvasContext.drawImage(this.font.image,
-													achar.chr * this.font.width,
-													achar.color * this.font.height,
+													aChar.chr * this.font.width,
+													aChar.color * this.font.height,
 													this.font.width,
 													this.font.height,
 													x * this.font.width,
@@ -294,6 +294,8 @@ ansiWeb = function() {
 	this.KEY_F8			= 119;
 	this.KEY_F9			= 120;
 	this.KEY_F10		= 121;
+	this.KEY_F11		= 122;
+	this.KEY_F12		= 123;
 
 	/**
 	 * Shift key down
@@ -388,6 +390,27 @@ ansiWeb = function() {
 	 */
 	this.currentset = 5;
 
+	this.c64ucMap = new Array(
+		null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
+		null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
+		0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F,
+		0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F,
+		0x00, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x4A, 0x4B, 0x4C, 0x4D, 0x4E, 0x4F,
+		0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58, 0x59, 0x5A, 0x1B, null, 0x1D, null, null,
+		null, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
+		0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, null, null, null, null, null,
+		null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
+		null, null, null, null, null, null, null, null, null, null, null, null, 0x1C, null, null, null,
+		null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
+		null, 0x66, null, 0x5D, 0x73, null, null, null, null, null, null, null, null, null, null, 0x6E,
+		null, 0x6D, 0x71, 0x72, 0x6B, 0x40, 0x5B, null, null, null, null, null, null, null, null, 0x6E,
+		null, null, null, null, null, null, null, null, null, 0x7D, 0x70, 0xB0, 0x62, 0x61, 0xE1, 0xE2,
+		null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null,
+		null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null
+	);
+
+	this.type		= 'ansi';
+
 	/**
 	 * Length of a row in characters
 	 */
@@ -429,12 +452,12 @@ ansiWeb = function() {
 	this.ansiId		= -1;
 
 	/**
-	 * true if data was set
+	 * length of data array passed to editor
 	 */	
 	this.dataSet	= false;
 
 	/**
-	 * Array of achar, holding the ANSI data
+	 * Array of aChar, holding the ANSI data
 	 */	
 	this.data		= new Array(this.rows * this.columns);
 
@@ -486,6 +509,11 @@ ansiWeb = function() {
 
 	this.helpScreen				= null;
 
+	/**
+	 * SPAN element holding current reverse status (C64 mode)
+	 */
+	this.reverse				= null;
+
 	this.fonts = new Array(new Array(new this.aFont(), new this.aFont()));
 	this.preloadCounter = 0;
 
@@ -496,9 +524,53 @@ ansiWeb = function() {
 
 		me = this;
 		switch (type) {
+			case 'c64':
+				this.fonts.push(new Array(new this.aFont, new this.aFont()));
+				this.fonts[0][0].init('images/font_c64uc.png', 8, 8, me);
+				this.fonts[0][1].init('images/font_c64uc_preview.png', 2, 2, me);
+				this.fonts[1][0].init('images/font_c64lc.png', 8, 8, me);
+				this.fonts[1][1].init('images/font_c64lc_preview.png', 2, 2, me);
+				this.type = 'c64';
+				this.colors = new Array(
+					new this.rgba(0,0,0,1),
+					new this.rgba(255,255,255,1),
+					new this.rgba(167,64,54,1),
+					new this.rgba(122,191,199,1),
+					new this.rgba(138,70,174,1),
+					new this.rgba(104,169,65,1),
+					new this.rgba(62,49,162,1),
+					new this.rgba(208,220,113,1),
+					new this.rgba(144,95,37,1),
+					new this.rgba(92,71,0,1),
+					new this.rgba(187,119,109,1),
+					new this.rgba(85,85,85,1),
+					new this.rgba(128,128,128,1),
+					new this.rgba(172,234,136,1),
+					new this.rgba(124,112,218,1),
+					new this.rgba(171,171,171,1)
+				);
+				this.specialCharacterSets = new Array(
+					new Array(0x7B, 0x7E, 0x6C, 0x7C, 0x7F, 0xFF, 0xFB, 0xFE, 0xEC, 0xFC, 0xA0),
+					new Array(0x68, 0xE8, 0x5C, 0xDC, 0x66, 0xE6, 0x69, 0xDF, 0x5F, 0xE9, 0x5E),
+					new Array(0x74, 0x75, 0x61, 0xF6, 0xEA, 0xA0, 0xF4, 0xF5, 0xE1, 0x76, 0x6A),
+					new Array(0xE2, 0xF9, 0xEF, 0xE4, 0xA0, 0xE3, 0xF7, 0xF8, 0x62, 0x1C, 0x7A),
+					new Array(0x70, 0x6E, 0x6D, 0x7D, 0x40, 0x5D, 0x6B, 0x73, 0x71, 0x72, 0x5B),
+					// the following sets only make sense in C64 uppercase mode
+					new Array(0x55, 0x49, 0x4A, 0x4B, 0x40, 0x5D, 0x6B, 0x73, 0x71, 0x72, 0x5B),
+					new Array(0x4F, 0x50, 0x4C, 0x7A, 0x6F, 0x77, 0x74, 0x6A, 0x4D, 0x4E, 0x56),
+					new Array(0x63, 0x77, 0x45, 0x44, 0x43, 0x46, 0x52, 0x6F, 0x64, 0x51, 0x57),
+					new Array(0x74, 0x54, 0x47, 0x42, 0x48, 0x59, 0x6A, 0x41, 0x53, 0x58, 0x5A)
+				);
+				this.columns = 40;
+				this.width = 40;
+				this.charColor = 15;
+				this.backgroundColor = 0;
+				this.numBackgroundColors = 0;
+				break;
 			case 'amiga':
 				this.fonts[0][0].init('images/font_amiga.png', 8, 11, me);
 				this.fonts[0][1].init('images/font_amiga_preview.png', 2, 3, me);
+				this.type = 'amiga';
 				break;
 			case 'ansi':
 			default:
@@ -507,6 +579,7 @@ ansiWeb = function() {
 				this.fonts[0][1].init('images/font_pc_80x25_preview.png', 2, 4, me);
 				this.fonts[1][0].init('images/font_pc_80x50.png', 9, 8, me);
 				this.fonts[1][1].init('images/font_pc_80x50_preview.png', 2, 2, me);
+				this.type = 'ansi';
 				break;
 		}
 	}
@@ -586,13 +659,14 @@ ansiWeb = function() {
 		this.updateBlockMarker();
 
 		if (this.dataSet) {
+			this.ansiHeight = this.dataset / 3 / this.columns;
 			this.mainCanvas.ansiHeight = this.ansiHeight;
 			this.previewCanvas.ansiHeight = this.ansiHeight;
 			this.mainCanvas.draw(this.data);
 			this.previewCanvas.draw(this.data);
 		} else {
 			for (var i = 0; i < this.data.length; i++) {
-				this.data[i] = new this.achar();
+				this.data[i] = new this.aChar();
 			}
 		}
 
@@ -621,14 +695,19 @@ ansiWeb = function() {
 			el.click(function() { me.setCharColor($(this).attr('colorvalue')); });
 		}
 		this.setCharColor(this.charColor);
-		$('<span> bg: </span>').appendTo(this.colorSelectorElement);
-		for(var i = 0; i < this.numBackgroundColors; i++) {
-			var el = $('<a class="backgroundcolor"></a>').appendTo(this.colorSelectorElement);
-			el.css({'background-color' :  this.colors[i].getRGBString()});
-			el.attr('colorvalue', i);
-			el.click(function() { me.setBackgroundColor($(this).attr('colorvalue')); });
+		if (this.numBackgroundColors != 0) {
+			$('<span> bg: </span>').appendTo(this.colorSelectorElement);
+			for(var i = 0; i < this.numBackgroundColors; i++) {
+				var el = $('<a class="backgroundcolor"></a>').appendTo(this.colorSelectorElement);
+				el.css({'background-color' :  this.colors[i].getRGBString()});
+				el.attr('colorvalue', i);
+				el.click(function() { me.setBackgroundColor($(this).attr('colorvalue')); });
+			}
+			this.setBackgroundColor(this.backgroundColor);
+		} else {
+			$('<span> rvs: </span>').appendTo(this.colorSelectorElement);
+			this.reverse = $('<span>off</span>').appendTo(this.colorSelectorElement);
 		}
-		this.setBackgroundColor(this.backgroundColor);
 	}
 
 	this.setupPreviewFrameMarker = function()
@@ -736,7 +815,11 @@ ansiWeb = function() {
 
 			case this.KEY_UP:
 				if (evt.ctrlKey) {
-					this.incBackgroundColor();
+					if (this.numBackgroundColors > 0) {
+						this.incBackgroundColor();
+					} else if (this.reverse !== null) {
+						this.toggleReverse();
+					}
 				} else {
 					this.cursorPos.y--;
 					if (this.shiftDown) {
@@ -747,7 +830,11 @@ ansiWeb = function() {
 
 			case this.KEY_DOWN:
 				if (evt.ctrlKey) {
-					this.decBackgroundColor();
+					if (this.numBackgroundColors > 0) {
+						this.decBackgroundColor();
+					} else if (this.reverse !== null) {
+						this.toggleReverse();
+					}
 				} else {
 					this.cursorPos.y++;
 					if (this.shiftDown) {
@@ -766,7 +853,7 @@ ansiWeb = function() {
 			
 			case this.KEY_BACKSPACE:
 				this.cursorPos.x--;
-				this.data[this.cursorPos.x + this.cursorPos.y * this.width] = new this.achar();			
+				this.data[this.cursorPos.x + this.cursorPos.y * this.width] = new this.aChar();			
 				break;
 			
 			case this.KEY_HOME:
@@ -817,15 +904,15 @@ ansiWeb = function() {
 				break;
 
 			default:
-				if (evt.keyCode >= this.KEY_F1 && evt.keyCode <= this.KEY_F10) {
+				if (evt.keyCode >= this.KEY_F1 && evt.keyCode <= this.KEY_F11) {
 					if (evt.altKey) {
-						this.currentset = evt.keyCode - this.KEY_F1;
+						this.currentset = Math.min(this.specialCharacterSets.length - 1, evt.keyCode - this.KEY_F1);
 						this.redrawKeys();
-					} else if (evt.ctrlKey && evt.keyCode <= this.KEY_F5) {
-						this.currentset = (evt.keyCode - this.KEY_F1 + 10);
+					} else if (evt.ctrlKey) {
+						this.currentset = Math.min(this.specialCharacterSets.length - 1, evt.keyCode - this.KEY_F1 + 10);
 						this.redrawKeys();
-					} else if (!evt.ctrlKey) {
-						this.insertChar(evt.keyCode - this.KEY_F1);
+					} else if (evt.keyCode - this.KEY_F1 < this.specialCharacterSets[this.currentset].length) {
+						this.insertChar(this.specialCharacterSets[this.currentset][evt.keyCode - this.KEY_F1]);
 					}
 					// no idea how else to stop Safari from reloading (on F5)
 					// or Chrome or Safari from closing the window (ALT/CTRL + F4)
@@ -944,7 +1031,31 @@ ansiWeb = function() {
 						break;
 
 					case this.MODE_EDIT:
-						if (evt.altKey || evt.ctrlKey) {
+						if (evt.altKey) {
+							switch (key) {
+								case 'A': break; // color menu (?obsolete?)
+								case 'B': break; // block commands
+								case 'C': this.clearScreen(); break;
+								case 'D': break; // sauce screen
+								case 'E': break; // switch canvas
+								case 'H': this.toggleHelp(); break;
+								case 'I': this.insertLine(); break;
+								case 'L': break; // load screen
+								case 'M': this.toggleFont(); break;
+								case 'O': break; // config screen
+		//						case 'R': break; // block restore
+								case 'R': this.mainCanvas.draw(this.data); this.previewCanvas.draw(this.data); break; // for debug purposes, ALT+R is redraw for now
+								case 'S': break; // save screen
+								case 'T': break; // tab setup
+								case 'U': this.pickupColor(); break;
+								case 'V': break; // switch vga viewing mode (?obsolete?)
+								case 'X': break; // exit ;)
+								case 'Y': this.deleteLine(); break;
+								case 'Z': break; // toggle blinking/iCE color
+								default:
+									handled = false;
+							} 
+						} else if (evt.ctrlKey) {
 							switch (key) {
 								case '1':
 								case '2':
@@ -966,7 +1077,7 @@ ansiWeb = function() {
 								case 'H': this.toggleHelp(); break;
 								case 'I': this.insertLine(); break;
 								case 'L': break; // load screen
-								case 'M': this.toggleLineMode(); break;
+								case 'M': this.toggleFont(); break;
 								case 'O': break; // config screen
 		//						case 'R': break; // block restore
 								case 'R': this.mainCanvas.draw(this.data); this.previewCanvas.draw(this.data); break; // for debug purposes, ALT+R is redraw for now
@@ -977,7 +1088,9 @@ ansiWeb = function() {
 								case 'X': break; // exit ;)
 								case 'Y': this.deleteLine(); break;
 								case 'Z': break; // toggle blinking/iCE color
-							} 
+								default:
+									handled = false;
+							}
 						} else {
 							handled = false;
 						}
@@ -1027,23 +1140,23 @@ ansiWeb = function() {
 			return false;
 		}
 
-		var position = (this.cursorPos.y + this.scroll) * this.columns + this.cursorPos.x;
-		this.data[position].chr	= charCode;
-		this.data[position].bg	= this.backgroundColor;
-		this.data[position].color= this.charColor;
-		this.mainCanvas.drawCharacter(this.cursorPos.x, (this.cursorPos.y + this.scroll), this.data[position]);
-		this.previewCanvas.drawCharacter(this.cursorPos.x, (this.cursorPos.y + this.scroll), this.data[position]);
-		this.cursorPos.x++;
-		this.ansiHeight = Math.max(this.ansiHeight, (this.cursorPos.y + this.scroll + 1));
+		if (this.type != 'c64' || this.c64ucMap[charCode] !== null) {
 
-		// make sure that block mode will not be triggered
-		// when a character is entered that required the shift key
-		if (this.shiftDown) {
-			this.shiftPos.x++;
+			if (this.type == 'c64') {
+				charCode = this.c64ucMap[charCode];
+			}
+
+			this.insertChar(charCode);
+
+			// make sure that block mode will not be triggered
+			// when a character is entered that required the shift key
+			if (this.shiftDown) {
+				this.shiftPos.x++;
+			}
+
+			this.testCursorValid();
+			this.adjustCursorMarker();
 		}
-
-		this.testCursorValid();
-		this.adjustCursorMarker();
 		return false;
 	} 
 
@@ -1126,6 +1239,19 @@ ansiWeb = function() {
 	}	
 
 	/**
+	 * Toggles the reverse character status
+	 * @return	void
+	 */
+	this.toggleReverse = function() {
+		if (this.reverse.html() == 'off') {
+			this.reverse.html('on');
+		} else {
+			this.reverse.html('off');
+		}
+		this.redrawKeys();
+	}
+
+	/**
 	 * Sets passed HTML code to status line
 	 * @param	{String}	HTML code for status line
 	 * @return	void
@@ -1194,7 +1320,7 @@ ansiWeb = function() {
 			// this does not only clear the screen, but also the ANSI data
 			// is there anything else that needs to be set here for a clean slate?
 			for (var i = 0; i < this.data.length; i++) {
-				this.data[i] = new this.achar();
+				this.data[i] = new this.aChar();
 			}
 			this.cursorPos	= new this.vec2();
 			this.shiftPos	= new this.vec2();	
@@ -1208,10 +1334,10 @@ ansiWeb = function() {
 	 * Toggles between 25/50 line mode
 	 * @return	void
 	 */	
-	this.toggleLineMode = function()
+	this.toggleFont = function()
 	{
 		if (this.fonts.length == 2) {
-			if (this.mainCanvas.font.height == 16) {
+			if (this.mainCanvas.font == this.fonts[0][0]) {
 				this.mainCanvas.setFont(this.fonts[1][0]);
 				this.previewCanvas.setFont(this.fonts[1][1]);
 			} else {
@@ -1252,7 +1378,7 @@ ansiWeb = function() {
 	{
 		this.dataSet = true;
 		for(var i=0; i < this.data.length; i++) {
-			this.data[i] = new this.achar();
+			this.data[i] = new this.aChar();
 		}
 
 		for(var i=0; i < arr.length / 3; i++) {
@@ -1261,7 +1387,7 @@ ansiWeb = function() {
 			this.data[i].color	= arr[i*3+2];
 		}
 
-		this.ansiHeight = arr.length / 3 / this.columns;
+		this.dataset = arr.length;
 	}
 
 	/**
@@ -1293,7 +1419,7 @@ ansiWeb = function() {
 			id: me.ansiId
 		}, function() {
 			me.saveButton.html('( saved \\o/ )');
-			setTimeout('resetSaveButton();',2000);
+			setTimeout('me.resetSaveButton();',2000);
 		});
 	}
 
@@ -1330,11 +1456,15 @@ ansiWeb = function() {
 	 */		
 	this.insertChar = function(which)
 	{
+		if (this.reverse && this.reverse.html() == 'on') {
+			which = which ^ 0x80;
+		}
+
 		if (this.mode == this.MODE_BLOCK_FILL) {
-			this.blockFillChar(this.specialCharacterSets[this.currentset][which]);
+			this.blockFillChar(which);
 		} else if (this.mode == this.MODE_EDIT) {
 			var position = (this.cursorPos.y + this.scroll) * this.columns + this.cursorPos.x;
-			this.data[position].chr		= this.specialCharacterSets[this.currentset][which];
+			this.data[position].chr		= which;
 			this.data[position].color	= this.charColor;
 			this.data[position].bg		= this.backgroundColor;
 			this.mainCanvas.drawCharacter(this.cursorPos.x, (this.cursorPos.y + this.scroll), this.data[position]);
@@ -1474,7 +1604,7 @@ ansiWeb = function() {
 	 */		
 	this.blockErase = function()
 	{
-		this.blockFillChar(0);
+		this.blockFillChar(32);
 	}
 
 	/**
@@ -1512,14 +1642,14 @@ ansiWeb = function() {
 	 */
 
 	/**
-	 * Returns an array containing a new blank line of achar objects
+	 * Returns an array containing a new blank line of aChar objects
 	 * @return	array
 	 */		
 	this.getNewLine = function()
 	{
 		var newLine = new Array();
 		for (var x = 0; x < this.columns; x++) {
-			newLine.push(new this.achar());
+			newLine.push(new this.aChar());
 		}
 		return newLine;
 	}
@@ -1565,7 +1695,7 @@ ansiWeb = function() {
 	this.deleteColumn = function()
 	{
 		for (var y = 0; y < this.ansiHeight; y++) {
-			this.data.splice((y + 1) * this.columns, 0, new this.achar());
+			this.data.splice((y + 1) * this.columns, 0, new this.aChar());
 			this.data.splice(y * this.columns + this.cursorPos.x, 1);
 		}
 		this.mainCanvas.shiftColumns(this.cursorPos.x, -1, (this.columns - 1));
@@ -1579,7 +1709,7 @@ ansiWeb = function() {
 	this.insertColumn = function()
 	{
 		for (var y = 0; y < this.ansiHeight; y++) {
-			this.data.splice(y * this.columns + this.cursorPos.x, 0, new this.achar());
+			this.data.splice(y * this.columns + this.cursorPos.x, 0, new this.aChar());
 			this.data.splice((y + 1 ) * this.width, 1);
 		}
 		this.mainCanvas.shiftColumns(this.cursorPos.x, 1, this.cursorPos.x);
@@ -1605,15 +1735,21 @@ ansiWeb = function() {
 
 		for (var i = 0; i < this.specialCharacterSets[this.currentset].length; i++) {
 			var p = i * 9 * 4;
-			var myS = new String('1234567890:');
+			var myK = '12345678901';
+			var myS = ':';
 			
 			var col = 0;
+			var character = this.specialCharacterSets[this.currentset][i];
 			if (this.backgroundColor == 0 || this.backgroundColor == 1 ) {
 				col = 7;
 			}
 
+			if (this.reverse && this.reverse.html() == 'on') {
+				character = character ^ 0x80;
+			}
+
 			this.keysetCanvasContext.drawImage(	this.mainCanvas.font.image,
-							myS.charCodeAt(i) * this.mainCanvas.font.width,
+							myK.charCodeAt(i) * this.mainCanvas.font.width,
 							col * this.mainCanvas.font.height,
 							this.mainCanvas.font.width,
 							this.mainCanvas.font.height,
@@ -1623,7 +1759,7 @@ ansiWeb = function() {
 							this.mainCanvas.font.height);
 
 			this.keysetCanvasContext.drawImage(	this.mainCanvas.font.image,
-							myS.charCodeAt(10) * this.mainCanvas.font.width,
+							myS.charCodeAt(0) * this.mainCanvas.font.width,
 							col * this.mainCanvas.font.height,
 							this.mainCanvas.font.width,
 							this.mainCanvas.font.height,
@@ -1633,7 +1769,7 @@ ansiWeb = function() {
 							this.mainCanvas.font.height);
 
 			this.keysetCanvasContext.drawImage(	this.mainCanvas.font.image,
-							this.specialCharacterSets[this.currentset][i] * this.mainCanvas.font.width,
+							character * this.mainCanvas.font.width,
 							this.charColor * this.mainCanvas.font.height,
 							this.mainCanvas.font.width,
 							this.mainCanvas.font.height,
